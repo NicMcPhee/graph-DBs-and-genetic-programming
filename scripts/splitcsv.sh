@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CSVFILE=$1
+CSVFILE="../data/$1"
 
 # If a parameter is not given, exit
 
@@ -39,7 +39,15 @@ done
 
 while read line
 do
-		
+	
+        IFS=',' read -a array <<< "$line"
+	array[3]=${array[3]//\"/}
+	array[3]="${array[3]:1:${#array[3]}-2}"
+	
+	line=$( IFS=, ; echo "${array[*]}" )
+	
+
+#	echo "line is  $line"
 	MOD=$(($COUNTER % 1000))
         if [ $MOD == "0" ] ; then
 		GEN=$(($GEN+1))
@@ -55,4 +63,3 @@ done
 } < $CSVFILE
 echo "Done!"
 exit 0
-
