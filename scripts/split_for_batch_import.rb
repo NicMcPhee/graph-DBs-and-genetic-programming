@@ -30,9 +30,7 @@ edge_file = File.join(dirname, basename + "_edges.csv")
 
 run_uuid = SecureRandom.uuid()
 
-def dashes_to_newlines(str)
-  str.gsub('-', '_')
-end
+dashes_to_newlines = lambda { |str| str.gsub('-', '_') }
 
 printed_headers = false
 CSV.open(node_file, "wb") do |nodes|
@@ -40,7 +38,7 @@ CSV.open(node_file, "wb") do |nodes|
     num_rows = 0
     CSV.open(input_file, "r",
     :headers => true,
-    :header_converters => lambda { |h| h.gsub('-', '_') },
+    :header_converters => dashes_to_newlines,
     :converters => :numeric) do |inputs|
       inputs.each do |row|
         if not printed_headers
