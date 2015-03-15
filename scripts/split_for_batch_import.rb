@@ -43,7 +43,7 @@ printed_headers = false
 CSV.open(node_file, "wb") do |nodes|
   CSV.open(edge_file, "wb") do |edges|
     num_rows = 0
-    edges << ["uuid:string:individuals", "uuid:string:individuals"]
+    edges << ["uuid:string:individuals", "uuid:string:individuals", "type"]
     CSV.open(input_file, "r",
     :headers => true,
     :header_converters => dashes_to_newlines,
@@ -60,11 +60,14 @@ CSV.open(node_file, "wb") do |nodes|
         parent_ids = parse_parent_uuids(row["parent_uuids"])
         row.delete("parent_uuids")
         row["run_uuid"] = run_uuid
+        row["uuid"] = '"' + row["uuid"] + '"'
+        row["plush_genome"] = row["plush_genome"].gsub("\\", "\\\\\\")
+        row["push_program"] = row["push_program"].gsub("\\", "\\\\\\")
         nodes << row
         # p parent_ids
         parent_ids.each do |parent_uuid|
           # p parent_uuid.gsub('"', '')
-          edges << [parent_uuid, '"' + row["uuid"] + '"']
+          edges << [parent_uuid, row["uuid"], "PARENT_OF"]
         end
       end
     end
