@@ -44,9 +44,13 @@ CSV.open(node_file, "wb") do |nodes|
     :converters => :numeric) do |inputs|
       inputs.each do |row|
         if not printed_headers
-          nodes << (inputs.headers + ["run_uuid"])
+          headers = inputs.headers
+          headers -= ["parent_uuids"]
+          headers += ["run_uuid"]
+          nodes << headers
           printed_headers = true
         end
+        row.delete("parent_uuids")
         row["run_uuid"] = run_uuid
         nodes << row
       end
