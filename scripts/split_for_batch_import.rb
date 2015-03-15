@@ -23,8 +23,10 @@ require 'securerandom'
 # individual columns.
 
 input_file = ARGV[0]
-node_file = File.basename(input_file, ".csv") + "_nodes.csv"
-edge_file = File.basename(input_file, ".csv") + "_edges.csv"
+dirname = File.dirname(input_file)
+basename = File.basename(input_file, ".csv")
+node_file = File.join(dirname, basename + "_nodes.csv")
+edge_file = File.join(dirname, basename + "_edges.csv")
 
 run_uuid = SecureRandom.uuid()
 
