@@ -32,25 +32,40 @@ run_uuid = SecureRandom.uuid()
 
 dashes_to_newlines = lambda { |str| str.gsub('-', '_') }
 
+def parse_parent_uuids(str)
+  str = str[1...-1]
+  parent_uuids = str.split(" ")
+end
+
+# name:string:users
+
 printed_headers = false
 CSV.open(node_file, "wb") do |nodes|
   CSV.open(edge_file, "wb") do |edges|
     num_rows = 0
+    edges << ["uuid:string:individuals", "uuid:string:individuals"]
     CSV.open(input_file, "r",
     :headers => true,
     :header_converters => dashes_to_newlines,
-    :converters => :numeric) do |inputs|
+    :converters => [:numeric]) do |inputs|
       inputs.each do |row|
         if not printed_headers
           headers = inputs.headers
           headers -= ["parent_uuids"]
           headers += ["run_uuid"]
+          headers[headers.index("uuid")] = "uuid:string:individuals"
           nodes << headers
           printed_headers = true
         end
+        parent_ids = parse_parent_uuids(row["parent_uuids"])
         row.delete("parent_uuids")
         row["run_uuid"] = run_uuid
         nodes << row
+        # p parent_ids
+        parent_ids.each do |parent_uuid|
+          # p parent_uuid.gsub('"', '')
+          edges << [parent_uuid, '"' + row["uuid"] + '"']
+        end
       end
     end
   end
