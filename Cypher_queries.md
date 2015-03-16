@@ -49,3 +49,12 @@ return id(n), n.TC75, n.TC89, n.TC105, n.TC109
 order by toInt(n.TC75), toInt(n.TC89), toInt(n.TC105), toInt(n.TC109) 
 limit 100;
 ```
+
+## Find percentiles of field values
+
+This query finds the 66% percentile for the `total_error` field for generation 41. Similar things can find other percentiles for other fields.
+
+```{sql}
+MATCH (n {generation: "41"}) 
+RETURN percentileCont(toInt(n.total_error), 0.66);
+```
