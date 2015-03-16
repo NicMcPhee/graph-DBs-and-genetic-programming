@@ -38,3 +38,14 @@ WITH DISTINCT n.generation AS gens
   MATCH (c {generation: g}) 
   RETURN g, avg(toInt(c.push_program_size));
 ```
+
+## Look at who does well on certain test cases
+
+This assumes the test cases are separate fields instead of together in an array (which is probably where we want to go), but it won't be that hard to change to array indices. Make sure you include a `LIMIT` or some other sort of limiting or this can generate an _enormous_ amount of stuff.
+
+```{sql}
+match (n {generation: "40"}) 
+return id(n), n.TC75, n.TC89, n.TC105, n.TC109 
+order by toInt(n.TC75), toInt(n.TC89), toInt(n.TC105), toInt(n.TC109) 
+limit 100;
+```
