@@ -58,3 +58,12 @@ This query finds the 66% percentile for the `total_error` field for generation 4
 MATCH (n {generation: "41"}) 
 RETURN percentileCont(toInt(n.total_error), 0.66);
 ```
+
+## Find the recent ancestors of a node
+
+This query finds all the ancestors of the given node (specified by UUID) going back 7 generations. Be careful how far back in time you push something like this, because it gets very slow and the output gets very large the farther you go back. This particular query takes just under two minutes on our home iMac, and returns a graph of 46 nodes and 53 relationships.
+
+```{sql}
+match (n {uuid: "\"50475edb-4f8c-43b3-b00a-aab3ed977ef8\""})<-[*0..7]-(a) 
+return distinct(a);
+```
