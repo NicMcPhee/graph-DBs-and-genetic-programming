@@ -18,3 +18,5 @@ with distinct n.generation as gens
   return g, count(c), 
     count(distinct c.plush_genome), count(distinct c.push_program), count(distinct c.total_error);
 ```
+
+[This Rpub](http://rpubs.com/NicMcPhee/65471) has a plot showing what this data looks like for one lexicase run of replace-space-with-newline.
