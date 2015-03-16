@@ -23,6 +23,8 @@ with distinct n.generation as gens
 
 [This Rpub](http://rpubs.com/NicMcPhee/65471) has a plot showing what this data looks like for one lexicase run of replace-space-with-newline.
 
+If you returned things like `p.uuid` and `c.uuid` then you'd get the UUIDs of the parent-child pairs which might be useful in some settings.
+
 ## Computing the average program size
 
 When we started this, we couldn't "loop" over a variable like the generation. They've added the `unwind` command that now allows us to get that effect. This query computes the average program size for each generation; the resulting table then can be loaded into something like R and plotted straight away.
