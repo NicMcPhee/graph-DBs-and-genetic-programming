@@ -67,3 +67,20 @@ This query finds all the ancestors of the given node (specified by UUID) going b
 match (n {uuid: "\"50475edb-4f8c-43b3-b00a-aab3ed977ef8\""})<-[*0..7]-(a) 
 return distinct(a);
 ```
+
+## Find "big" crossovers
+
+This query finds all crossovers where:
+ * There are two distinct parents
+ * The child's `total_error` is less than 25% of _both_ parent's `total_error`
+
+My real goal would be to have a query that would work for both single parent and two parent situations (like the one below), but I couldn't figure out how to get both to happen.
+
+```{sql}
+match (q)-->(n)<--(p) 
+where p.uuid < q.uuid 
+  AND toFloat(n.total_error) < 0.25 * toFloat(p.total_error) 
+  AND toFloat(n.total_error) < 0.25 * toFloat(q.total_error) 
+return n.generation, n.uuid, n.total_error, p.uuid, p.total_error, q.uuid, q.total_error;
+```
+There are (to Nic) a surprsing number of these; not sure if that's a Push thing or a lexicase thing. In run 6 of lexicase replace-space-with-newline this query returns 104 such crossover events.
