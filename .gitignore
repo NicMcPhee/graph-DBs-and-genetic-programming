@@ -1,2 +1,10 @@
 # We don't want to ever commit data files
 data
+
+# bin is where we can put executables that we rely on, like batch_import
+bin
+
+# the R-Markdown tool generates a bunch of HTML files that we don't really
+# want in the repo.
+R/*.html
+
