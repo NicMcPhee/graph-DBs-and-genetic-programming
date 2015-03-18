@@ -1,0 +1,31 @@
+---
+title: "Cloning analysis"
+output: html_document
+---
+
+```{r}
+library('ggplot2')
+library('reshape2')
+
+duplicate_genomes <- read.csv("../data/rswn-lex-run6/duplicate_genomes.csv")
+colnames(duplicate_genomes)[2] = "num_dups"
+colnames(duplicate_genomes)[3] = "num_unique"
+colnames(duplicate_genomes)[1] = "generation"
+melted_data = melt(duplicate_genomes, id=c("generation"), variable.name="count_type", value.name="count")
+
+genome_sizes <- read.csv("../data/rswn-lex-run6/genome_sizes.csv")
+colnames(genome_sizes) = c("generation", "genome_size")
+genome_sizes$count_type = "genome_size"
+colnames(genome_sizes)[2] = "count"
+big_data = rbind(melted_data, genome_sizes)
+
+error_counts <- read.csv("../data/rswn-lex-run6/error_counts.csv")
+colnames(error_counts)[1] = "generation"
+colnames(error_counts)[5] = "count"
+error_counts$count_type = "distinct_error_vals"
+bigger_data = rbind(big_data, error_counts[, c("generation", "count", "count_type")])
+
+ggplot(bigger_data, aes(x=generation, y=count, color=count_type)) + 
+  geom_line() + ylim(0, 300) + 
+  labs(title="Run 6, RSWN, lexicase", color="")
+```
