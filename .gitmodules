@@ -1,0 +1,3 @@
+[submodule "bin/batch-import"]
+	path = bin/batch-import
+	url = https://github.com/jexp/batch-import.git

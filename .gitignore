@@ -2,9 +2,9 @@
 data
 
 # bin is where we can put executables that we rely on, like batch_import
-bin
+# bin
+bin/batch_importer_21
 
 # the R-Markdown tool generates a bunch of HTML files that we don't really
 # want in the repo.
 R/*.html
-
