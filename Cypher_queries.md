@@ -1,3 +1,5 @@
+**Note**: There's a number of instances of things like `toInt` and `toFloat` in these examples that will hopefully be able to go away. The initial import into Neo4J had all the numbers imported as strings, but we should be able to change that so they're imported as numbers instead, removing the need for these conversion functions.
+
 # Cypher queries for Tom Helmuth's data
 
 We can use this file to save Cypher queries that we've found useful, both for re-use and as a guide for writing new queries.
