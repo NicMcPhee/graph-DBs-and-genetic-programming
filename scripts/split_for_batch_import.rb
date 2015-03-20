@@ -37,8 +37,6 @@ def parse_parent_uuids(str)
   parent_uuids = str.split(" ")
 end
 
-# name:string:users
-
 printed_headers = false
 CSV.open(node_file, "wb") do |nodes|
   CSV.open(edge_file, "wb") do |edges|
@@ -64,12 +62,13 @@ CSV.open(node_file, "wb") do |nodes|
         row["plush_genome"] = row["plush_genome"].gsub("\\", "\\\\\\")
         row["push_program"] = row["push_program"].gsub("\\", "\\\\\\")
         nodes << row
-        # p parent_ids
         parent_ids.each do |parent_uuid|
-          # p parent_uuid.gsub('"', '')
           edges << [parent_uuid, row["uuid"], "PARENT_OF"]
         end
       end
     end
   end
 end
+
+# Syntax for calling batch_import:
+#    ./import.sh test.db ../data/data6_nodes.csv ../data/data6_edges.csv
