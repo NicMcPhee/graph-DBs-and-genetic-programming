@@ -37,37 +37,67 @@ def parse_parent_uuids(str)
   parent_uuids = str.split(" ")
 end
 
+def parse_gen_ops(str)
+  if str.index("[") == 0
+   str = str[1...-1]
+  end
+  str = str.gsub("-", "_").gsub(":", "")
+  genetic_ops = str.split(" ")
+end
+
+def add_int_string(arr)
+  for i in 0..arr.length-1
+    if arr[i].end_with?("tion", "size","error")		
+      arr[i] += ":int"
+    end
+  end
+ intarr = arr
+end
+
 # name:string:users
 
 printed_headers = false
 CSV.open(node_file, "wb") do |nodes|
   CSV.open(edge_file, "wb") do |edges|
     num_rows = 0
-    edges << ["uuid:string:individuals", "uuid:string:individuals", "type"]
+    edges << ["uuid:string:individuals", "uuid:string:individuals", "type", "gen_ops"]
     CSV.open(input_file, "r",
     :headers => true,
     :header_converters => dashes_to_newlines,
     :converters => [:numeric]) do |inputs|
       inputs.each do |row|
         if not printed_headers
-          headers = inputs.headers
+          headers = inputs.headers[0..9]
+	  headers = add_int_string(headers)
           headers -= ["parent_uuids"]
+	  headers -= ["genetic_operators"]
           headers += ["run_uuid"]
+	  headers += ["test_cases"]
+	  headers[headers.index("test_cases")]= "test_cases:int_array"
           headers[headers.index("uuid")] = "uuid:string:individuals"
           nodes << headers
           printed_headers = true
         end
         parent_ids = parse_parent_uuids(row["parent_uuids"])
-        row.delete("parent_uuids")
+	genetic_ops = parse_gen_ops(row["genetic_operators"])
+	row.delete("parent_uuids")
+	row.delete("genetic_operators")
+
+	tc_arr = row.select {|key, value| key =~ /\ATC\d*\z/}
+	test_cases = Hash[tc_arr.to_a]
+	row.delete_if {|key, value| key =~ /\ATC\d*\z/}	
+        
         row["run_uuid"] = run_uuid
         row["uuid"] = '"' + row["uuid"] + '"'
         row["plush_genome"] = row["plush_genome"].gsub("\\", "\\\\\\")
         row["push_program"] = row["push_program"].gsub("\\", "\\\\\\")
+	row["test_cases"] = test_cases.values
+	
         nodes << row
         # p parent_ids
         parent_ids.each do |parent_uuid|
-          # p parent_uuid.gsub('"', '')
-          edges << [parent_uuid, row["uuid"], "PARENT_OF"]
+
+          edges << [parent_uuid, row["uuid"], "PARENT_OF", genetic_ops]
         end
       end
     end
