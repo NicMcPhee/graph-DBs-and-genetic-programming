@@ -47,7 +47,7 @@ end
 
 def add_int_string(arr)
   for i in 0..arr.length-1
-    if arr[i].end_with?("tion", "size","error")		
+    if arr[i].end_with?("tion", "size","error")
       arr[i] += ":int"
     end
   end
@@ -85,21 +85,22 @@ CSV.open(node_file, "wb") do |nodes|
 
 	tc_arr = row.select {|key, value| key =~ /\ATC\d*\z/}
 	test_cases = Hash[tc_arr.to_a]
-	row.delete_if {|key, value| key =~ /\ATC\d*\z/}	
-        
+	row.delete_if {|key, value| key =~ /\ATC\d*\z/}
+
         row["run_uuid"] = run_uuid
         row["uuid"] = '"' + row["uuid"] + '"'
         row["plush_genome"] = row["plush_genome"].gsub("\\", "\\\\\\")
         row["push_program"] = row["push_program"].gsub("\\", "\\\\\\")
 	row["test_cases"] = test_cases.values
-	
-        nodes << row
-        # p parent_ids
-        parent_ids.each do |parent_uuid|
 
+        nodes << row
+        parent_ids.each do |parent_uuid|
           edges << [parent_uuid, row["uuid"], "PARENT_OF", genetic_ops]
         end
       end
     end
   end
 end
+
+# Syntax for calling batch_import:
+#    ./import.sh test.db ../data/data6_nodes.csv ../data/data6_edges.csv
