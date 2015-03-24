@@ -21,19 +21,20 @@ require 'securerandom'
 # We need to replace all the dashes in the headers with underscores,
 # and it would be good to glob all the errors into an array instead of
 # individual columns.
-
+Dir.mkdir("../data/split_csvs") unless File.exists?("../data/split_csvs")
 input_file = ARGV[0]
+p input_file
 dirname = File.dirname(input_file)
 basename = File.basename(input_file, ".csv")
-node_file = File.join(dirname, basename + "_nodes.csv")
-edge_file = File.join(dirname, basename + "_edges.csv")
+node_file = File.join(dirname, "split_csvs", basename + "_nodes.csv")
+edge_file = File.join(dirname, "split_csvs", basename + "_edges.csv")
 
 run_uuid = SecureRandom.uuid()
 
 dashes_to_newlines = lambda { |str| str.gsub('-', '_') }
 
 def parse_parent_uuids(str)
-  str = str[1...-1]
+  str = str[1...-1].gsub("\"","")
   parent_uuids = str.split(" ")
 end
 
@@ -42,14 +43,17 @@ def parse_gen_ops(str)
    str = str[1...-1]
   end
   str = str.gsub("-", "_").gsub(":", "")
-  genetic_ops = str.split(" ")
+  genetic_ops = str.split(" ").join(",")
 end
 
 def add_int_string(arr)
   for i in 0..arr.length-1
-    if arr[i].end_with?("tion", "size","error")
-      arr[i] += ":int"
+    if arr[i].end_with?("error")
+      arr[i] += ":float:individuals"
+    elsif arr[i].end_with?("tion", "size")
+      arr[i] += ":int:individuals"
     end
+
   end
  intarr = arr
 end
@@ -60,7 +64,7 @@ printed_headers = false
 CSV.open(node_file, "wb") do |nodes|
   CSV.open(edge_file, "wb") do |edges|
     num_rows = 0
-    edges << ["uuid:string:individuals", "uuid:string:individuals", "type", "gen_ops"]
+    edges << ["uuid:string:individuals", "uuid:string:individuals", "type", "gen_ops:string_array"]
     CSV.open(input_file, "r",
     :headers => true,
     :header_converters => dashes_to_newlines,
@@ -73,7 +77,7 @@ CSV.open(node_file, "wb") do |nodes|
 	  headers -= ["genetic_operators"]
           headers += ["run_uuid"]
 	  headers += ["test_cases"]
-	  headers[headers.index("test_cases")]= "test_cases:int_array"
+	  headers[headers.index("test_cases")]= "test_cases:float_array"
           headers[headers.index("uuid")] = "uuid:string:individuals"
           nodes << headers
           printed_headers = true
@@ -88,19 +92,17 @@ CSV.open(node_file, "wb") do |nodes|
 	row.delete_if {|key, value| key =~ /\ATC\d*\z/}
 
         row["run_uuid"] = run_uuid
-        row["uuid"] = '"' + row["uuid"] + '"'
         row["plush_genome"] = row["plush_genome"].gsub("\\", "\\\\\\")
         row["push_program"] = row["push_program"].gsub("\\", "\\\\\\")
-	row["test_cases"] = test_cases.values
+	row["test_cases"] = test_cases.values.join(",")
 
         nodes << row
         parent_ids.each do |parent_uuid|
-          edges << [parent_uuid, row["uuid"], "PARENT_OF", genetic_ops]
+        edges << [parent_uuid, row["uuid"], "PARENT_OF", genetic_ops]
         end
       end
     end
   end
 end
-
 # Syntax for calling batch_import:
 #    ./import.sh test.db ../data/data6_nodes.csv ../data/data6_edges.csv
