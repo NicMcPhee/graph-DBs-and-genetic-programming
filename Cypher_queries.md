@@ -114,7 +114,7 @@ slow as you push back in time, and will depend a lot on the branching factor of 
 
 ```{sql}
 match (n) 
-  where toInt(n.generation) > 60 
+  where toInt(n.generation) > 70 
   with distinct n.generation as gens 
 unwind gens as g 
   match (p {generation: g})-[*]->(c {total_error: "0"}) 
