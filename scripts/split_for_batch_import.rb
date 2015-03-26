@@ -21,7 +21,7 @@ require 'securerandom'
 # We need to replace all the dashes in the headers with underscores,
 # and it would be good to glob all the errors into an array instead of
 # individual columns.
-Dir.mkdir("../data/split_csvs") unless File.exists?("../data/split_csvs")
+
 input_file = ARGV[0]
 p input_file
 dirname = File.dirname(input_file)
@@ -51,12 +51,13 @@ def add_int_string(arr)
     if arr[i].end_with?("error")
       arr[i] += ":float:individuals"
     elsif arr[i].end_with?("tion", "size")
-      arr[i] += ":int:individuals"
+      arr[i] += ":int"
     end
 
   end
  intarr = arr
 end
+
 
 # name:string:users
 
@@ -64,7 +65,8 @@ printed_headers = false
 CSV.open(node_file, "wb") do |nodes|
   CSV.open(edge_file, "wb") do |edges|
     num_rows = 0
-    edges << ["uuid:string:individuals", "uuid:string:individuals", "type", "gen_ops:string_array"]
+    edges << ["uuid:string:individuals", "uuid:string:individuals", "type", "gen_ops:string_array", "error_diff:float", "least_total_error:boolean"]
+    total_error_hash  = Hash.new
     CSV.open(input_file, "r",
     :headers => true,
     :header_converters => dashes_to_newlines,
@@ -74,12 +76,14 @@ CSV.open(node_file, "wb") do |nodes|
           headers = inputs.headers[0..9]
 	  headers = add_int_string(headers)
           headers -= ["parent_uuids"]
+	  headers += ["label"]
 	  headers -= ["genetic_operators"]
           headers += ["run_uuid"]
 	  headers += ["test_cases"]
 	  headers[headers.index("test_cases")]= "test_cases:float_array"
           headers[headers.index("uuid")] = "uuid:string:individuals"
-          nodes << headers
+          headers[headers.index("label")] = "i:label"
+	  nodes << headers
           printed_headers = true
         end
         parent_ids = parse_parent_uuids(row["parent_uuids"])
@@ -90,19 +94,34 @@ CSV.open(node_file, "wb") do |nodes|
 	tc_arr = row.select {|key, value| key =~ /\ATC\d*\z/}
 	test_cases = Hash[tc_arr.to_a]
 	row.delete_if {|key, value| key =~ /\ATC\d*\z/}
+	
+	row["label"] = "individuals"
 
         row["run_uuid"] = run_uuid
         row["plush_genome"] = row["plush_genome"].gsub("\\", "\\\\\\")
         row["push_program"] = row["push_program"].gsub("\\", "\\\\\\")
 	row["test_cases"] = test_cases.values.join(",")
-
+	
+	
+	total_error_hash[row["uuid"]] = row["total_error"]
+	
         nodes << row
+	parent_count = 0
         parent_ids.each do |parent_uuid|
-        edges << [parent_uuid, row["uuid"], "PARENT_OF", genetic_ops]
-        end
+	  least_total_error = true
+	  total_error = total_error_hash[parent_uuid]-row["total_error"]
+	  
+	  if parent_ids.length == 2
+		least_total_error = total_error_hash[parent_ids[parent_count]] < total_error_hash[parent_ids[1-parent_count]]
+	  end
+	  # p "#{parent_uuid} #{row["uuid"]} #{total_error} #{total_error_hash[parent_uuid]} #{row["total_error"]} #{least_total_error}"
+          edges << [parent_uuid, row["uuid"], "PARENT_OF", genetic_ops, total_error, least_total_error]
+          parent_count += 1
+	end
       end
     end
   end
 end
 # Syntax for calling batch_import:
 #    ./import.sh test.db ../data/data6_nodes.csv ../data/data6_edges.csv
+
