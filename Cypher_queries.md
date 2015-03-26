@@ -106,3 +106,18 @@ return distinct id(p), count(distinct n)
 order by count(distinct n) desc 
 limit 20;
 ```
+
+## Counting ancestors of winners
+
+This tells us how many ancestors of any winner we had in each of the given generations. It gets increasingly
+slow as you push back in time, and will depend a lot on the branching factor of the geneology you're searching.
+
+```{sql}
+match (n) 
+  where toInt(n.generation) > 60 
+  with distinct n.generation as gens 
+unwind gens as g 
+  match (p {generation: g})-[*]->(c {total_error: "0"}) 
+  return g, count(distinct p) 
+  order by toInt(g) asc;
+```
