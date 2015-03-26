@@ -112,7 +112,7 @@ CSV.open(node_file, "wb") do |nodes|
 	  total_error = total_error_hash[parent_uuid]-row["total_error"]
 	  
 	  if parent_ids.length == 2
-		least_total_error = total_error_hash[parent_ids[parent_count]] < total_error_hash[parent_ids[1-parent_count]]
+		least_total_error = total_error_hash[parent_ids[parent_count]] <= total_error_hash[parent_ids[1-parent_count]]
 	  end
 	  # p "#{parent_uuid} #{row["uuid"]} #{total_error} #{total_error_hash[parent_uuid]} #{row["total_error"]} #{least_total_error}"
           edges << [parent_uuid, row["uuid"], "PARENT_OF", genetic_ops, total_error, least_total_error]
