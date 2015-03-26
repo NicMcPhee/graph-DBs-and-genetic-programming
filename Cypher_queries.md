@@ -121,3 +121,14 @@ unwind gens as g
   return g, count(distinct p) 
   order by toInt(g) asc;
 ```
+
+## Who has the most children, grandchildren, etc.?
+
+The `4` in the first line indicates how far down the tree to go; a 1 there would count children, a 2 would count grandchildren, etc.
+
+```{sql}
+ match (n)-[* 4]->(m) 
+ return id(n), count(distinct m) 
+ order by count(distinct m) desc 
+ limit 40;
+```
