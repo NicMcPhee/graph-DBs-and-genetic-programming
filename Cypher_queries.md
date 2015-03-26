@@ -86,3 +86,49 @@ where p.uuid < q.uuid
 return n.generation, n.uuid, n.total_error, p.uuid, p.total_error, q.uuid, q.total_error;
 ```
 There are (to Nic) a surprsing number of these; not sure if that's a Push thing or a lexicase thing. In run 6 of lexicase replace-space-with-newline this query returns 104 such crossover events.
+
+## Find ancestors of winners with lots of children
+
+This doesn't count _all_ children, but just children that are also ancestors of winners.
+
+```{sql}
+match (p)-->(c)-[*0..7]->(w {total_error: "0"}) 
+return distinct id(p), count(distinct c) 
+order by count(distinct c); 
+```
+
+To count _all_ children use this:
+
+```{sql}
+match (p)-->(c)-[*0..7]->(w {total_error: "0"}) 
+match (p)-->(n) 
+return distinct id(p), count(distinct n) 
+order by count(distinct n) desc 
+limit 20;
+```
+
+## Counting ancestors of winners
+
+This tells us how many ancestors of any winner we had in each of the given generations. It gets increasingly
+slow as you push back in time, and will depend a lot on the branching factor of the geneology you're searching.
+
+```{sql}
+match (n) 
+  where toInt(n.generation) > 70 
+  with distinct n.generation as gens 
+unwind gens as g 
+  match (p {generation: g})-[*]->(c {total_error: "0"}) 
+  return g, count(distinct p) 
+  order by toInt(g) asc;
+```
+
+## Who has the most children, grandchildren, etc.?
+
+The `4` in the first line indicates how far down the tree to go; a 1 there would count children, a 2 would count grandchildren, etc.
+
+```{sql}
+ match (n)-[* 4]->(m) 
+ return id(n), count(distinct m) 
+ order by count(distinct m) desc 
+ limit 40;
+```
