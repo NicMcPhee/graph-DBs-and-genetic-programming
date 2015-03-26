@@ -86,3 +86,23 @@ where p.uuid < q.uuid
 return n.generation, n.uuid, n.total_error, p.uuid, p.total_error, q.uuid, q.total_error;
 ```
 There are (to Nic) a surprsing number of these; not sure if that's a Push thing or a lexicase thing. In run 6 of lexicase replace-space-with-newline this query returns 104 such crossover events.
+
+## Find ancestors of winners with lots of children
+
+This doesn't count _all_ children, but just children that are also ancestors of winners.
+
+```{sql}
+match (p)-->(c)-[*0..7]->(w {total_error: "0"}) 
+return distinct id(p), count(distinct c) 
+order by count(distinct c); 
+```
+
+To count _all_ children use this:
+
+```{sql}
+match (p)-->(c)-[*0..7]->(w {total_error: "0"}) 
+match (p)-->(n) 
+return distinct id(p), count(distinct n) 
+order by count(distinct n) desc 
+limit 20;
+```
