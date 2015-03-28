@@ -9,9 +9,12 @@ dbLocation = "../../data/test.db"
 nodeList = ""
 edgeList = ""
 
+if (ARGV.length > 0) 
+	dbLocation = "../../data/" + ARGV[0] + ".db"
+end
 
-if (ARGV.length > 0)
-	files = ARGV[0]
+if (ARGV.length > 1)
+	files = ARGV[1]
 	fileArr = files.split(",")
 	
 end
