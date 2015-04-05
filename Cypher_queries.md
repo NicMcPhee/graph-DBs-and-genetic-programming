@@ -132,3 +132,24 @@ The `4` in the first line indicates how far down the tree to go; a 1 there would
  order by count(distinct m) desc 
  limit 40;
 ```
+
+# Adding ancestor edges to winner
+
+This query takes a while, but _really_ pays off down the road as it prevents Neo4J from "re-searching" for relationships over and over again in other queries. This is set up to just provide `ANCESTOR_OF` links to the winning individuals, but it could easily be expanded to provide shortcut edges for _every_ ancestor relationship. That would just take a lot longer and add a ton more edges, so I haven't tried that yet.
+
+```{sql}
+match (a)-[*1..]->(n {total_error: 0}) 
+merge (a)-[r:ANCESTOR_OF]->(n) 
+  on create set r.numPaths=1
+  on match set r.numPaths=coalesce(r.numPaths, 0)+1;
+```
+
+This works by 
+* Finding (matching) all paths of length at least 1 to a winner (`total_error` = 0).
+* Use `merge` to create a new relationship with the label `ANCESTOR_OF`, or find/name one if one already exists.
+* If we're creating a new relationship, set it's `numPaths` field to 1.
+* If that relationship already existed, increment it's `numPaths` field by 1.
+
+At the end, the `numPaths` field should tell us how many distinct paths there are from the ancestor node to the winning node.
+
+To do this over an entire run DB takes quite a while (many minutes to hours depending on the size of the run). It would probably make more sense to do this using something like Mazerunner so we can distribute the effort.
