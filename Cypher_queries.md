@@ -135,6 +135,8 @@ The `4` in the first line indicates how far down the tree to go; a 1 there would
 
 # Adding ancestor edges to winner
 
+## Direct approach
+
 This query takes a while, but _really_ pays off down the road as it prevents Neo4J from "re-searching" for relationships over and over again in other queries. This is set up to just provide `ANCESTOR_OF` links to the winning individuals, but it could easily be expanded to provide shortcut edges for _every_ ancestor relationship. That would just take a lot longer and add a ton more edges, so I haven't tried that yet.
 
 ```{sql}
@@ -153,3 +155,26 @@ This works by
 At the end, the `numPaths` field should tell us how many distinct paths there are from the ancestor node to the winning node.
 
 To do this over an entire run DB takes quite a while (many minutes to hours depending on the size of the run). It would probably make more sense to do this using something like Mazerunner so we can distribute the effort.
+
+## Faster approach?
+
+OK – that takes forever, at least on my laptop, and then eventually errored out for some reason (perhaps having to do with the laptop going to sleep). So play B is to try to take advantage of the fact that generations allow us to do this incrementally, and hopefully avoid essentially searching every single path in the universe.
+
+This assumes the run ends on generation 87. This is a case where it would be good to have a `Run` node that could, for example, include information on how many generations there are in that run as a way of avoiding this kind of magic number.
+
+It is awesome, except that it doesn't work. It assumed that the new relationships would be added "on the fly", but the (usually very nice) transactional nature of Cyper means that in fact no new edges will be added until the query is "done". This means that running generation 83 won't have any idea what got put in during generation 84.
+
+The idea is usable, though, and could be moved into something like a Ruby script that would perform an appropriate queryonce for each generation. So frustrating.
+
+```{sql}
+match (p {generation: 86})-[:PARENT_OF]->(w {total_error: 0})
+merge (p)-[r:ANCESTOR_OF]->(w)
+  on create set r.numPaths=1;
+
+with range(85, 80, -1) as gens
+unwind gens as g
+match (p {generation: g})-[:PARENT_OF]->(c)-[:ANCESTOR_OF]->(w {total_error: 0})
+merge (p)-[r:ANCESTOR_OF]->(w)
+  on create set r.numPaths=1
+  on match set r.numPaths=coalesce(r.numPaths, 0)+1;
+```
