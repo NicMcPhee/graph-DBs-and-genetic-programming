@@ -162,9 +162,11 @@ OK – that takes forever, at least on my laptop, and then eventually errored o
 
 This assumes the run ends on generation 87. This is a case where it would be good to have a `Run` node that could, for example, include information on how many generations there are in that run as a way of avoiding this kind of magic number.
 
-It is awesome, except that it doesn't work. It assumed that the new relationships would be added "on the fly", but the (usually very nice) transactional nature of Cyper means that in fact no new edges will be added until the query is "done". This means that running generation 83 won't have any idea what got put in during generation 84.
+It is awesome, **except that it doesn't work**. It assumed that the new relationships would be added "on the fly", but the (usually very nice) transactional nature of Cyper means that in fact no new edges will be added until the query is "done". This means that running generation 83 won't have any idea what got put in during generation 84.
 
 The idea is usable, though, and could be moved into something like a Ruby script that would perform an appropriate queryonce for each generation. So frustrating.
+
+Hmph.
 
 ```{sql}
 match (p {generation: 86})-[:PARENT_OF]->(w {total_error: 0})
