@@ -133,11 +133,57 @@ The `4` in the first line indicates how far down the tree to go; a 1 there would
  limit 40;
 ```
 
+# Finding ancestry chains where parents are "similar" to children
+
+So I struggled with this for quite a lot, and even [opened a question on StackOverflow](http://stackoverflow.com/questions/29465925/seeking-neo4j-cypher-query-for-long-but-nearly-unique-paths) but eventually came to the conclusion that we can't efficiently generate long paths that are filtered on edge field values. I had hoped, for example, that this query would chase back through the small number of paths from a winner along only `least_total_error` edges:
+
+```{sql}
+match (a)-[:PARENT_OF* {least_total_error: true}]->(w {total_error: 0}) 
+return distinct a;
+```
+
+That totally didn't work. Using the nifty new profiling tools provided in Neo4j 2.2, I found that the problem is that Neo4j essentially finds _every_ path through the graph (and there are millions and millions of those) and _then_ filters out the ones that contain "bad" edges (edges where `least_total_error` is `false`). 
+
+It also appears to do the same thing with `w` (only filters after it generates the _huge_ pool of paths), but that we can fix with a `WITH` clause:
+
+```{sql}
+match (w {total_error: 0}) 
+with w
+match (a)-[:PARENT_OF* {least_total_error: true}]->(w) 
+return distinct a;
+```
+
+Unfortunately there doesn't appear to be any way to "pre-filter" the pool of edges like the query above "pre-filters" the pool of nodes for `w`.
+
+We _can_ however, get good performance if we limit the path to a particular edge _label_, so I added an `LTE` edge between every pair of nodes that had a `least_total_error: true` edge:
+
+```{sql}
+match (a)-[r:PARENT_OF {least_total_error: true}]->(b) 
+create (a)-[:LTE]->(b);
+```
+
+I'd resisted this idea at first because I worried that this would be super slow, but it's not. This query added about 91K new edges in under a second!
+
+Once all those new edges are in place, then we can do the query we want:
+
+```{sql}
+match (w {total_error: 0}) 
+with w 
+match (a)-[:LTE*]->(w) 
+return distinct id(a), a.generation, a.total_error 
+order by a.generation 
+limit 200;
+```
+
+This generates the 123 nodes going back to the beginning of the run in about 4 seconds.
+
+This means that if there's any kind of special edge property that we want to chase pseudo-linearly like this, we _have_ to make new edges for it. That can happen in the Ruby import scripts or (because it's apparently really fast) we can do it after the fact in the DB like above. But we have to do it somewhere or we just won't be able to chase those paths.
+
 # Adding ancestor edges to winner
 
 ## Direct approach
 
-This query takes a while, but _really_ pays off down the road as it prevents Neo4J from "re-searching" for relationships over and over again in other queries. This is set up to just provide `ANCESTOR_OF` links to the winning individuals, but it could easily be expanded to provide shortcut edges for _every_ ancestor relationship. That would just take a lot longer and add a ton more edges, so I haven't tried that yet.
+This query takes a forever to do for the whole graph, so don't even try it. If it worked, though, it could really pays off as we could use the new `ANCESTOR_OF` edge to prevent Neo4J from "re-searching" for relationships over and over again in other queries. This is set up to just provide `ANCESTOR_OF` links to the winning individuals, but it could easily be expanded to provide shortcut edges for _every_ ancestor relationship. That would just take a lot longer and add a ton more edges, so I haven't tried that yet.
 
 ```{sql}
 match (a)-[*1..]->(n {total_error: 0}) 
@@ -154,15 +200,15 @@ This works by
 
 At the end, the `numPaths` field should tell us how many distinct paths there are from the ancestor node to the winning node.
 
-To do this over an entire run DB takes quite a while (many minutes to hours depending on the size of the run). It would probably make more sense to do this using something like Mazerunner so we can distribute the effort.
+I let this run for hours over an entire run DB and eventually killed it. It would probably make more sense to do this using something like Mazerunner so we can distribute the effort.
 
 ## Faster approach?
 
-OK – that takes forever, at least on my laptop, and then eventually errored out for some reason (perhaps having to do with the laptop going to sleep). So play B is to try to take advantage of the fact that generations allow us to do this incrementally, and hopefully avoid essentially searching every single path in the universe.
+The previous approach takes forever, at least on my laptop, and then eventually errored out for some reason (perhaps having to do with the laptop going to sleep). So play B is to try to take advantage of the fact that generations allow us to do this incrementally, and hopefully avoid essentially searching every single path in the universe.
 
 This assumes the run ends on generation 87. This is a case where it would be good to have a `Run` node that could, for example, include information on how many generations there are in that run as a way of avoiding this kind of magic number.
 
-It is awesome, **except that it doesn't work**. It assumed that the new relationships would be added "on the fly", but the (usually very nice) transactional nature of Cyper means that in fact no new edges will be added until the query is "done". This means that running generation 83 won't have any idea what got put in during generation 84.
+This approach is awesome, **except that it doesn't work**. It assumed that the new relationships would be added "on the fly", but the (usually very nice) transactional nature of Cyper means that in fact no new edges will be added until the query is "done". This means that running generation 83 won't have any idea what got put in during generation 84, etc.
 
 The idea is usable, though, and could be moved into something like a Ruby script that would perform an appropriate queryonce for each generation. So frustrating.
 
