@@ -226,3 +226,21 @@ merge (p)-[r:ANCESTOR_OF]->(w)
   on create set r.numPaths=1
   on match set r.numPaths=coalesce(r.numPaths, 0)+1;
 ```
+
+# Counting parents and max children across generations
+
+The following query tells us for each generation (a) how many individuals were in fact parents and (b) what the maximum number of children any individual had:
+
+```{sql}
+unwind range(0, 87) as gen 
+  match (n {generation: gen}) 
+with gen, n 
+  match (n)-[:PARENT_OF]->(c) 
+with gen, n, count(distinct c) as ncs 
+  return gen, count(distinct n), max(ncs) 
+    order by gen asc;
+```
+
+* The `unwind` essentially "loops" through the generations.
+* The first `match` and `with` restricts the subsequent searches to paths that start in that generation, which greatly speeds things up.
+* The second `with` is necessary to limit or give a name to the count of distinct children so we can apply `max` to it in the `return.
