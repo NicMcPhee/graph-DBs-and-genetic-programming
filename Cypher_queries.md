@@ -249,6 +249,8 @@ with gen, n, count(distinct c) as ncs
 
 @thelmuth would like to be able to count how many individuals in a run are selected more than 1%, 5%, and 10% of the total number of selections in their generation. The following query does that, assuming (on the second line) that the run has 88 generations (we could compute the max generation at the start of the query, but I was lazy). I suspect there may be ways to make this more efficient (it takes about 80 seconds on a single run of 88 generations), but it seems to be a good place to start.
 
+I think that if we created a Generation node that we used to cache things like the total number of selections, we could substantially speed up (and simplify) queries like this.
+
 ```{sql}
 unwind [0.01, 0.05, 0.1] as targetPercentage
 unwind range(0, 88) as gen
