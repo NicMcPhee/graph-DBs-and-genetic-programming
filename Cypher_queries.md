@@ -265,7 +265,9 @@ return targetPercentage, count(distinct p)
 order by targetPercentage asc;
 ```
 
-This is the same thing, but breaks the data out by generation.
+_@thelmuth pointed out that we really need to normalize these by dividing by the number of generations so we don't introduce a bias for long runs vs. short runs._
+
+Below is the same thing, but breaks the data out by generation.
 
 ```{sql}
 unwind [0.01, 0.05, 0.1] as targetPercentage
@@ -280,3 +282,5 @@ where percentage >= targetPercentage
 return gen, targetPercentage, count(distinct p), max(percentage)
 order by gen asc, targetPercentage asc;
 ```
+
+@donat056 and I chatted about this, and it seems like it might be _much_ more efficient to compute things like "number of times this individual was selected to be a parent" _once_ and store it in a field in the individual node. Then these sorts of queries would probably be both easier and faster.
