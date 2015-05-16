@@ -4,6 +4,16 @@
 
 We can use this file to save Cypher queries that we've found useful, both for re-use and as a guide for writing new queries.
 
+## Adding the number of children as a property to every node
+
+This doesn't check for the case where the property has already been set (although that wouldn't be hard), so you probably don't want to use it on a DB that's already had this computed on some of the nodes.
+
+```{sql}
+match (p)-[:PARENT_OF]->(c) 
+with p, count(distinct c) as numKids 
+set p.num_children=numKids;
+```
+
 ## Finding cloning events
 
 In looking at sequence alignment results for an interesting subgraph of the population, Nic noticed that there were quite a lot of cloning events where a child had exactly the same genome as its parent. Lee then asked how diverse that set of cloned genomes was.
