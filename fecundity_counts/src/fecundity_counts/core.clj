@@ -53,7 +53,7 @@
   (get-property run :run_uuid))
 
 (defn get-run-max-generation [run]
-  (get-property run :max-generation))
+  (get-property run :max_generation))
 
 (defn get-run-id ^long [run]
   (get-in run [:metadata :id]))
