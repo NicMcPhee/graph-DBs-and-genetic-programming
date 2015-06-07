@@ -104,6 +104,8 @@
 ; meaningful parallelism :-(
 ; (time (doall (add-max-gen-property all-runs)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ; match (n:Individual {run_uuid: "4b3686c3-8d3d-41b0-81b2-280b49d279ab"})  with n optional match (n)-[r:PARENT_OF]->(c) with n, count(r) as numSels, count(distinct c) as numKids set n += {num_selections: numSels, num_children: numKids};
 ; Took 6793ms, 1806001 db accesses
 ; Now trying it without the run_uuid restriction and we'll see how long *that* takes.
@@ -112,16 +114,25 @@
 
 ; So I wrote this little bit of code that handled each run separately, and that took about 45 mins to complete.
 
-(defn add-selection-offspring-count-properties-to-run [run]
-  (let [match-run (str "MATCH (n:Individual {run_uuid: \"" (get-run-uuid run) "\"})")
+(defn add-selection-offspring-count-properties-to-run-gen [run gen]
+  (let [match-run-gen (str "MATCH (n:Individual {run_uuid: \"" (get-run-uuid run) "\", generation: " gen "})")
         using-index "USING INDEX n:Individual(run_uuid) WITH n"
         find-children "OPTIONAL MATCH (n)-[r:PARENT_OF]->(c) WITH n, COUNT(r) AS numSels, COUNT(DISTINCT c) AS numKids"
         set-properties "SET n += {num_selections: numSels, num_children: numKids}"
-        query (clojure.string/join " " [match-run using-index find-children set-properties])]
+        query (clojure.string/join " " [match-run-gen using-index find-children set-properties])]
     (cy/tquery conn query)))
 
+; (time (add-selection-offspring-count-properties-to-run-gen (first all-runs) 10))
+
+(defn add-selection-offspring-count-properties-to-run [run]
+  (doseq [gen (range (inc (get-run-max-generation run)))]
+    (add-selection-offspring-count-properties-to-run-gen run gen)
+    (println (str "Finished up run " (get-run-uuid run)))))
+
+; (time (doall (add-selection-offspring-count-properties-to-run (first all-runs))))
+
 (defn add-selection-offspring-count-properties-to-runs [runs]
-  (pmap (fn [run] (dorun (add-selection-offspring-count-properties-to-run run))) runs))
+  (pmap (fn [run] (dorun [(add-selection-offspring-count-properties-to-run run)])) runs))
 
 ; This one doesn't parallelize very well because all the work is in the *big*
 ; query in add-selection-offspring-count-properties-to-run and none of the work
@@ -136,7 +147,25 @@
 ; didn't speed anything up. This has been running for 2-3 hours and still isn't done. Sigh.
 ; Actually, it still ran out of memory and died, it just took longer to do it. So we're going
 ; to break this up by generation so the transactions aren't so big.
-(time (doall (add-selection-offspring-count-properties-to-runs all-runs)))
+
+; The new version (with generations done separately) seems to do *some* parallelism
+; (the load is often between 150-200%) with bursts of high(er) parallelism (around 600%).
+; Not entirely sure what's the source of the inconsistency, but I'm guessing it's pmap's
+; chunking behavior where it waits for the slowest one in a chunk to finish before it goes
+; on. So short runs that ended early get processed quickly, and then the big runs take a lot
+; longer to deal with. It may also be that Clojure can parallize its part just fine, but there's
+; much happening on the Clojure end here, and then Neo4j doesn't parallelize for crap on its
+; end. Maybe this is another reason to explore that parallel graph library for Neo4j?
+
+; This would have take _weeks_ so eventually I killed it. I think that breaking things down
+; that much was _too_ much.
+
+; I've decided that I really need to deal with this in the Python code that generates the CSV
+; files that we import, so I'm going to go back and see how hard that will be.
+
+(time (dorun (add-selection-offspring-count-properties-to-runs all-runs)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;   ON :Individual(num_selections) ONLINE
 ;;   ON :Individual(num_children)   ONLINE
@@ -146,6 +175,8 @@
   (ni/create conn "Individual" "num_children"))
 
 ; (add-selection-count-schema)
+
+; (ni/get-all conn "Individual")
 
 (defn total-selections-for-run-gen [run gen]
   (let [match-run-gen (str "MATCH (n:Individual {run_uuid: \"" (get-run-uuid run) "\", generation: " gen "})")
