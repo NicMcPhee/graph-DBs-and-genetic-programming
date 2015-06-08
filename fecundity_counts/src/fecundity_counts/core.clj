@@ -65,7 +65,7 @@
 ; (get-run-id (first all-runs))
 
 (defn find-max-gen [run]
-  (let [query (str "MATCH (n:Individual {run_uuid: \"" (get-run-uuid run) "\"}) USING INDEX n:Individual(run_uuid) RETURN MAX(n.generation)")
+  (let [query (str "MATCH (g:Generation {run_uuid: \"" (get-run-uuid run) "\"}) RETURN MAX(g.generation)")
         run-query #(cy/tquery conn %)]
     (-> query
         run-query
@@ -73,7 +73,7 @@
         vals
         first)))
 
-; (time (find-max-gen (first all-runs)))
+; (time (find-max-gen (second all-runs)))
 
 ;; (defn max-gens [run-ids]
 ;;   (zipmap run-ids (pmap find-max-gen run-ids)))
@@ -100,9 +100,12 @@
 ;;     (nn/set-property conn (get-run-id run) :max_generation max-gen)))
 
 ; RUN THIS ON A NEW DB
-; This took about 30 minutes on the RSWN Tourney DB, and didn't seem to do any
-; meaningful parallelism :-(
+; This just took a couple of seconds on the new RSWN Tourney DB, using the
+; generation nodes to compute the max generation.
+
 ; (time (doall (add-max-gen-property all-runs)))
+
+; (sort (map get-run-max-generation all-runs))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -163,7 +166,7 @@
 ; I've decided that I really need to deal with this in the Python code that generates the CSV
 ; files that we import, so I'm going to go back and see how hard that will be.
 
-(time (dorun (add-selection-offspring-count-properties-to-runs all-runs)))
+; (time (dorun (add-selection-offspring-count-properties-to-runs all-runs)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -276,7 +279,9 @@
       (csv/write-csv out-file [["Run_UUID", "Generation", "1%", "5%", "10%"]])
       (csv/write-csv out-file selections))))
 
-; (time (doall (generate-hyper-selection-csv "rswn_tournament_hyperselections.csv" (take 100 all-runs) [0.01, 0.05, 0.1])))
+; This took 8.5 hours on the tournament replace-space-with-newline DB (which has over 28M nodes),
+; generating a 1.3MB output file.
+(time (doall (generate-hyper-selection-csv "rswn_tournament_hyperselections.csv" (take 100 all-runs) [0.01, 0.05, 0.1])))
 
 ;; (time (count (filter #(> % 0)
 ;;                      (pmap #(:num_selections (nn/get-properties conn %)) (range 100000)))))
