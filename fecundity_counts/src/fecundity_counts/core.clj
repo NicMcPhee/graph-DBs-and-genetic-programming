@@ -28,7 +28,9 @@
 (defn add-initial-schema []
   (ni/create conn "Individual" "generation")
   (ni/create conn "Individual" "run_uuid")
-  (ni/create conn "Individual" "total_error"))
+  (ni/create conn "Individual" "total_error")
+  (ni/create conn "Individual" "num_selections")
+  (ni/create conn "Individual" "num_children"))
 
 ; (add-initial-schema)
 
@@ -40,7 +42,7 @@
 ; (time (count-runs))
 
 (defn get-runs []
-  (map #(get % "run") (cy/tquery conn "MATCH (run:Run) RETURN run")))
+  (vec (map #(get % "run") (cy/tquery conn "MATCH (run:Run) RETURN run"))))
 
 (def all-runs (get-runs))
 
@@ -209,7 +211,7 @@
 ;;           gen (range (inc (get-run-max-generation run)))]
 ;;     (add-generation-nodes-for-run-gen run gen)))
 
-; This took about 18 hours, which suggests that ad-generation-nodes-for-run-gen is pretty messed up
+; This took about 18 hours, which suggests that add-generation-nodes-for-run-gen is pretty messed up
 ; and needs to be tuned. I think the problem is the query in total-selections-for-run-gen. The problem
 ; might be that we're using the wrong index in that query?
 ; (time (add-generation-nodes all-runs))
@@ -229,11 +231,15 @@
 
 ; (get-gen-total-selections (second all-runs) 10)
 
+; It turns out that for treatments where most runs went the full 300 generations, my
+; "USING INDEX" hint was a Very Bad Idea, that slowed things down by about a factor
+; of 3.
+
 (defn get-individual-selections [run gen]
   (let [match-run-gen (str "MATCH (n:Individual {run_uuid: \"" (get-run-uuid run) "\", generation: " gen "})")
-        using-index "USING INDEX n:Individual(run_uuid)"
+        ; using-index "USING INDEX n:Individual(run_uuid)"
         return-selections "RETURN n.num_selections"
-        query (clojure.string/join " " [match-run-gen using-index return-selections])]
+        query (clojure.string/join " " [match-run-gen return-selections])]
     (->> query
          (cy/tquery conn)
          (map #(get % "n.num_selections")))))
@@ -241,6 +247,7 @@
 ; (get-individual-selections (second all-runs) 10)
 
 (defn compute-hyper-selections-for-run-gen [run gen proportions]
+  (print (str gen " "))
   (let [gen-total-selections (get-gen-total-selections run gen)
         individual-selections (get-individual-selections run gen)]
     (if (zero? gen-total-selections)
@@ -253,14 +260,16 @@
 ; (time (compute-hyper-selections-for-run-gen (first all-runs) 10 [0.01, 0.05, 0.1]))
 
 (defn compute-hyper-selections-for-run [run proportions]
-  (doall (for [gen (range (inc (get-run-max-generation run)))]
+  (println)
+  (println (get-run-uuid run))
+  (for [gen (range (inc (get-run-max-generation run)))]
     (concat [(get-run-uuid run) gen]
-            (compute-hyper-selections-for-run-gen run gen proportions)))))
+            (doall (compute-hyper-selections-for-run-gen run gen proportions)))))
 
 ; (time (doall (compute-hyper-selections-for-run (second all-runs) [0.01, 0.05, 0.1])))
 
 (defn compute-hyper-selections [runs proportions]
-  (apply concat (pmap #(compute-hyper-selections-for-run % proportions) runs)))
+  (apply concat (pmap #(doall (compute-hyper-selections-for-run % proportions)) runs)))
 ;; (defn compute-hyper-selections [runs proportions]
 ;;   (let [res (map #(future (compute-hyper-selections-for-run % proportions)) runs)]
 ;;     (reduce concat [] (map deref res))))
@@ -274,14 +283,30 @@
 ; (map (fn [i] (/ (reduce + (map #(nth % i) sels)) (* 1.0 (count sels)))) [2 3 4])
 
 (defn generate-hyper-selection-csv [filename runs proportions]
-  (let [selections (compute-hyper-selections runs proportions)]
-    (with-open [out-file (io/writer filename)]
+  (with-open [out-file (io/writer filename)]
+    (let [selections (compute-hyper-selections runs proportions)]
       (csv/write-csv out-file [["Run_UUID", "Generation", "1%", "5%", "10%"]])
       (csv/write-csv out-file selections))))
 
 ; This took 8.5 hours on the tournament replace-space-with-newline DB (which has over 28M nodes),
 ; generating a 1.3MB output file.
-(time (doall (generate-hyper-selection-csv "rswn_tournament_hyperselections.csv" (take 100 all-runs) [0.01, 0.05, 0.1])))
+; Modified so it did parallelism better, this took about 3.36 hours on the negative-to-zero problem
+; which also has around 28M nodes.
+
+; (time (doall (generate-hyper-selection-csv "syl_tournament_hyperselections.csv" (take 100 all-runs) [0.01, 0.05, 0.1])))
+
+;; (defn fib [n]
+;;   (if (< n 2)
+;;     n
+;;     (+ (fib (dec n))
+;;        (fib (- n 2)))))
+
+;; (time
+;;  (let [rows (doall (apply concat
+;;                           (for [n (range 40)]
+;;                             (repeat 100 [n (fib n)]))))]
+;;    (with-open [out-file (io/writer "silly.csv")]
+;;      (csv/write-csv out-file rows))))
 
 ;; (time (count (filter #(> % 0)
 ;;                      (pmap #(:num_selections (nn/get-properties conn %)) (range 100000)))))
