@@ -1,4 +1,12 @@
-graph = TitanFactory.open('conf/titan-berkeleyje-es.properties')
+graph = TitanFactory.build().
+set("storage.backend", "berkeleyje").
+set("storage.directory", "/tmp/graph").
+set("index.search.backend", "elasticsearch").
+set("index.search.directory", "/tmp/searchindex").
+open();
+
+
+//g = graph.traversal()
 
 nodeCSV = "/Research/autoconstruction_neo4j/replace-space-with-newline__d_nodes.csv"
 
@@ -15,3 +23,19 @@ new File(nodeCSV).splitEachLine(",") { fields ->
 	}
 }
 
+graph.tx().rollback()  //Never create new indexes while a transaction is active
+mgmt = graph.openManagement()
+mgmt.set("index.search.elasticsearch.client-only", false)
+mgmt.set("index.search.elasticsearch.local-mode", true)
+
+uuid = mgmt.makePropertyKey('uuid').dataType(String.class).cardinality(Cardinality.SINGLE).make()
+generation = mgmt.makePropertyKey('generation').dataType(Integer.class).cardinality(Cardinality.SINGLE).make()
+total_error = mgmt.makePropertyKey('total_error').dataType(Float.class).cardinality(Cardinality.SINGLE).make()
+mgmt.buildIndex('uuidGenerationTotalError', Vertex.class).addKey(uuid).addKey(generation).addKey(total_error).buildMixedIndex("search")
+mgmt.commit()
+//Wait for the index to become available
+mgmt.awaitGraphIndexStatus(graph, 'uuidGenerationTotalError').call()
+//Reindex the existing data
+mgmt = graph.openManagement()
+mgmt.updateIndex(mgmt.getGraphIndex("uuidGenerationTotalError"), SchemaAction.REINDEX).get()
+mgmt.commit()

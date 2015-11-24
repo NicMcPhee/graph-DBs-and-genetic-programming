@@ -87,4 +87,29 @@ gremlin> g.V().has('total_error', 0.toFloat()).next()
 gremlin> g.V().has('total_error', 0f).next()
 ==>v[78712864]
 
+***********************************************************************************************************************************
 
+11/23
+* We're currently deleting the database directory to delete graphs *
+Gremlin remove all Vertex:
+graph.close()
+com.thinkaurelius.titan.core.util.TitanCleanup.clear(graph);
+
+* Ended: Looking at elesticseach for external index based searching *
+Install on Bebop next time!
+
+* Not attempted yet *
+Adding Edges:
+http://gremlindocs.spmallette.documentup.com/#graphaddedge
+gremlin> g = new TinkerGraph()
+==>tinkergraph[vertices:0 edges:0]
+gremlin> v1 = g.addVertex(100)
+==>v[100]
+gremlin> v2 = g.addVertex(200)
+==>v[200]
+gremlin> g.addEdge(v1,v2,'friend')
+==>e[0][100-friend->200]
+gremlin> g.addEdge(1000,v1,v2,'buddy')
+==>e[1000][100-buddy->200]
+gremlin> g.addEdge(null,v1,v2,'pal',[weight:0.75f])
+==>e[1][100-pal->200]
