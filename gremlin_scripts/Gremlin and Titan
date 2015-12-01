@@ -113,3 +113,20 @@ gremlin> g.addEdge(1000,v1,v2,'buddy')
 ==>e[1000][100-buddy->200]
 gremlin> g.addEdge(null,v1,v2,'pal',[weight:0.75f])
 ==>e[1][100-pal->200]
+
+***********************************************************************************************************************************
+
+11/30
+* When running gremlin script, if graph directory exists and do not have the write permissions, bad error message occurs
+
+* Close graph and mgmt after running script, otherwise badness and exceptions
+
+* We think the default schema is being used for indexing, and we do not know what type of data it's saved as. We want to set this ourselves.
+** we do not want to use the default schema **
+
+*** Should we index before loading everything in?
+
+Login as Maggie
+Run gremlin on bebop in directory that has scripts
+Remove graphes and searchindex before running script
+Use :load LoadNodes.groovy in gremlin
