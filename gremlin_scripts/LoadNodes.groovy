@@ -33,19 +33,19 @@ mgmt = graph.openManagement()
 uuid = mgmt.getPropertyKey('uuid')
 generation = mgmt.getPropertyKey('generation')
 total_error = mgmt.getPropertyKey('total_error')
-mgmt.buildIndex('uuidGenerationTotalError', Vertex.class).addKey(uuid).addKey(generation).addKey(total_error).buildMixedIndex("search")
+mgmt.buildIndex('generationTotalError', Vertex.class).addKey(generation).addKey(total_error).buildMixedIndex("search")
 println("About to commit")
 mgmt.commit()
 graph.tx().commit()
 
 println("About to wait for index")
 // Block until the SchemaStatus transitions from INSTALLED to REGISTERED
-mgmt.awaitGraphIndexStatus(graph, 'uuidGenerationTotalError').status(SchemaStatus.REGISTERED).call()
+mgmt.awaitGraphIndexStatus(graph, 'generationTotalError').status(SchemaStatus.REGISTERED).call()
 
 // Reindex using TitanManagement
 mgmt = graph.openManagement()
 println("About to get graph the index")
-i = mgmt.getGraphIndex('uuidGenerationTotalError')
+i = mgmt.getGraphIndex('generationTotalError')
 println("About to update index")
 mgmt.updateIndex(i, SchemaAction.REINDEX)
 println("About to commit")
@@ -53,8 +53,8 @@ mgmt.commit()
 
 // Enable the index
 println("About to Enable the index")
-mgmt.awaitGraphIndexStatus(graph, 'uuidGenerationTotalError').status(SchemaStatus.ENABLED).call()
-//mgmt.awaitGraphIndexStatus(graph, 'uuidGenerationTotalError').call()
-println("About to close the graph")
-graph.close()
+mgmt.awaitGraphIndexStatus(graph, 'generationTotalError').status(SchemaStatus.ENABLED).call()
+//mgmt.awaitGraphIndexStatus(graph, 'generationTotalError').call()
+//println("About to close the graph")
+//graph.close()
 
