@@ -127,6 +127,29 @@ gremlin> g.addEdge(null,v1,v2,'pal',[weight:0.75f])
 *** Should we index before loading everything in?
 
 Login as Maggie
-Run gremlin on bebop in directory that has scripts
+Run gremlin on bebop from directory that has scripts with:
+/Research/titan-1.0.0-hadoop1/bin/gremlin.sh
+
 Remove graphes and searchindex before running script
 Use :load LoadNodes.groovy in gremlin
+
+***********************************************************************************************************************************
+
+12/7
+Range with ints:
+g.V().has("total_error", inside(0,150)).count()
+Ranges with labels:
+g.V().has("total_error", inside(0,150)).count()
+
+Indexing is taking a long period of time, we may want ot remove:
+uuid = mgmt.getPropertyKey('uuid')
+& replace with run  uuid, may improve speed on building index.
+(Success with 100 file, but not with 192,000)
+
+Attempting to build index for at least 10 min.
+Got return, however top shows us it's still running.
+On close of Gremlin:
+Dec 07, 2015 7:12:14 PM com.google.common.cache.LocalCache processPendingNotifications
+
+
+
