@@ -151,5 +151,30 @@ Got return, however top shows us it's still running.
 On close of Gremlin:
 Dec 07, 2015 7:12:14 PM com.google.common.cache.LocalCache processPendingNotifications
 
+***********************************************************************************************************************************
 
+12/8
 
+Nic did some playing around and confirmed that we did just need to wait for the index building to finish. 
+Not sure how long it actually took, but probably between 30 and 60 minutes.
+
+After the index was build, queries are generally really fast. Some potentially useful queries:
+
+// Find the largest generation in the DB
+g.V().values('generation').max()
+
+// Find the minimal total error in generation 176
+g.V().has('generation', 176).values('total_error').min()
+
+// Print the minimal total error for each of the 191 generations in a run
+// You need the `.next()` bit on the end or you get a TinkerPop object
+// instead of the value.
+191.times { print " " + g.V().has('generation', it).values('total_error').min().next() }
+
+// Loop over each of 191 generations, and print a line of the form `[gen, min, mean10, mean100]`
+// for each generations, where `gen` is the generation, `min` is the minimum `total_error`,
+// `mean10` is the average of the 10 best total errors, and `mean100` is the average of the 100
+// best total errors in that generation.
+191.times { println "[" + it + ", " + (g.V().has('generation', it).values('total_error').min().next()) 
+                + ", " + (g.V().has('generation', it).values('total_error').order().limit(10).mean().next()) 
+                + ", " + (g.V().has('generation', it).values('total_error').order().limit(100).mean().next()) + "]," }
