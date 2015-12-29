@@ -1,5 +1,5 @@
 ***********************************************************************************************************************************
-Notes from 11/9
+Notes from 11/9, unless specified otherwise.
 
 graph = TitanFactory.open('conf/titan-berkeleyje-es.properties')
 
@@ -17,6 +17,7 @@ g.V(id).values() // Not sure if 'id' was a variable or an actual ID
 g.V(*Some vertex*).valueMap() // Returns all labeled values for *Some vertex*, uses Saturn in example
 
 ***********************************************************************************************************************************
+
 Copied & Pasted From Titan:db
 http://s3.thinkaurelius.com/docs/titan/1.0.0/getting-started.html
 
@@ -33,6 +34,7 @@ The Gremlin overview presented in this section focused on the Gremlin-Groovy lan
 https://github.com/tinkerpop/gremlin/wiki/JVM-Language-Implementations
 
 ***********************************************************************************************************************************
+
 "25+ Handy Gremlin Examples and Code Snippets for Graph Database Traversal and Manipulation"
 http://www.fromdev.com/2013/09/Gremlin-Example-Query-Snippets-Graph-DB.html
 
@@ -40,7 +42,8 @@ Get The Count Of Vertices With A Attribute Value
 g.V('firsName','John').count();
 
 ***********************************************************************************************************************************
-From wikipedia: Lots of examples!
+
+From wikipedia: Lots of examples of queries with Titan!
 Like Declarative Pattern Matching Traversals vs. OLAP Traversal
 https://en.wikipedia.org/wiki/Gremlin_(programming_language)#Traversal_Examples
 
@@ -54,7 +57,8 @@ gremlin> g.V().has('movie','name','Die Hard').inE('rated').values('stars').mean(
 ==>4.121848739495798
 
 ***********************************************************************************************************************************
-Notes from lecture:
+
+Notes from online lecture:
 http://www.slideshare.net/calebwjones/intro-to-graph-databases-using-tinkerpops-titandb-and-gremlin
 Suggests Gephi for visualization tool.
 
@@ -76,6 +80,7 @@ https://www.youtube.com/watch?v=wtiUjna9IMo
 ***********************************************************************************************************************************
 
 11/16
+
 To run script in Gremlin:
 :load /home/casal033/MAP/graph-DBs-and-genetic-programming/gremlin_scripts/LoadNodes.groovy
 
@@ -90,6 +95,7 @@ gremlin> g.V().has('total_error', 0f).next()
 ***********************************************************************************************************************************
 
 11/23
+
 * We're currently deleting the database directory to delete graphs *
 Gremlin remove all Vertex:
 graph.close()
@@ -117,6 +123,7 @@ gremlin> g.addEdge(null,v1,v2,'pal',[weight:0.75f])
 ***********************************************************************************************************************************
 
 11/30
+
 * When running gremlin script, if graph directory exists and do not have the write permissions, bad error message occurs
 
 * Close graph and mgmt after running script, otherwise badness and exceptions
@@ -136,6 +143,7 @@ Use :load LoadNodes.groovy in gremlin
 ***********************************************************************************************************************************
 
 12/7
+
 Range with ints:
 g.V().has("total_error", inside(0,150)).count()
 Ranges with labels:
@@ -178,3 +186,64 @@ g.V().has('generation', 176).values('total_error').min()
 191.times { println "[" + it + ", " + (g.V().has('generation', it).values('total_error').min().next()) 
                 + ", " + (g.V().has('generation', it).values('total_error').order().limit(10).mean().next()) 
                 + ", " + (g.V().has('generation', it).values('total_error').order().limit(100).mean().next()) + "]," }
+
+***********************************************************************************************************************************
+
+12/28
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+How to Titan 0.o:
+1) ssh to bebop
+2) cd to:
+cd /Research/titan-1.0.0-hadoop1/bin/gremlin.sh
+3) Use this in Gremlin:
+:load LoadNodes.groovy
+4) Delete graph and searchindex with:
+rm -r filename
+in:
+cd /Research/titan-1.0.0-hadoop1/tmp/
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Generally Running the Groovy Script: 
+* Always: graph is open & mgmt is closed afterwards
+* with 100: GraphIndexStatusReport returns success
+* with all: GraphIndexStatusReport returns failure
+
+Researching Edges:
+* Schema consists of: Edge labels and prperty keys 
+(you can label verticies, may be useful when referencing how indivual is dervied e.g. 'autocontruction' or 'random')
+
+* Edge label multiplicity options:
+  - MULTI: Allows multiple edges of the same label between any pair of vertices.
+  - SIMPLE: Allows at most one edge of such label between any pair of vertices.
+  - MANY2ONE: Allows at most one outgoing edge of such label on any vertex in the graph but places no constraint on incoming edges.
+	Example of Usage: 
+	mgmt = graph.openManagement()
+	parent_of = mgmt.makeEdgeLabel('parent_of').multiplicity(MULTI).make()
+	mgmt.commit()
+
+** Apparently there is a type 'UUID', should this be considered for the vetex property key type?
+	- http://s3.thinkaurelius.com/docs/titan/current/schema.html
+	- Under "Table 5.1. Native Titan Data Types"
+
+** Similar but different: Can we assign the vertex ID as the UUID?
+
+** Also this: "It is strongly encouraged to explicitly define all schema elements and to disable automatic schema creation 
+by setting schema.default=none in the Titan graph configuration."
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Some notes before leaving:
+
+* Running with edges gives this at end:
+==>0
+Count = 0
+Count = 1
+No signature of method: com.thinkaurelius.titan.graphdb.database.StandardTitanGraph.addEdge() is applicable for argument types: (com.thinkaurelius.titan.graphdb.vertices.CacheVertex, com.thinkaurelius.titan.graphdb.vertices.CacheVertex, java.lang.String) values: [v[471160], v[856080], parent_of]
+
+* Want to attempt commenting out the mixed index when adding edges (try just removing first before adding edges)
+* May also want to consider placement of making the edge label in the script. It's currently where we create the property keys, could be closer to creating edges.
+* Current opened tabs:
+	- http://gremlindocs.spmallette.documentup.com/#graphaddedge
+	- http://s3.thinkaurelius.com/docs/titan/0.5.4/schema.html#_relation_types
+	- http://s3.thinkaurelius.com/docs/titan/current/tx.html
+	- https://www.google.com/search?q=com.thinkaurelius.titan.graphdb.database.StandardTitanGraph.addEdge()+is+applicable+for+argument+types%3A+(com.thinkaurelius.titan.graphdb.vertices.CacheVertex%2C+com.thinkaurelius.titan.graphdb.vertices.CacheVertex%2C+java.lang.String)+values%3A&oq=com.thinkaurelius.titan.graphdb.database.StandardTitanGraph.addEdge()+is+applicable+for+argument+types%3A+(com.thinkaurelius.titan.graphdb.vertices.CacheVertex%2C+com.thinkaurelius.titan.graphdb.vertices.CacheVertex%2C+java.lang.String)+values%3A&aqs=chrome..69i57.341j0j4&sourceid=chrome&es_sm=93&ie=UTF-8#q=com.thinkaurelius.titan.graphdb.database.StandardTitanGraph.addEdge()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

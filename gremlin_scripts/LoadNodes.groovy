@@ -3,11 +3,17 @@ graph = TitanFactory.open("db.properties");
 
 //g = graph.traversal()
 
-// nodeCSV = "/Research/autoconstruction_neo4j/replace-space-with-newline__d_nodes_100.csv"
+//nodeCSV = "/Research/autoconstruction_neo4j/replace-space-with-newline__d_nodes_100.csv"
 nodeCSV = "/Research/autoconstruction_neo4j/replace-space-with-newline__d_nodes.csv"
 
 println("We're in the script")
 mgmt = graph.openManagement()
+
+// vv**************** Testing creating edge label ***********************vv
+println("We're making an edgeLabel")
+parent_of = mgmt.makeEdgeLabel('parent_of').multiplicity(MULTI).make()
+println("We're DONE making an edgeLabel")
+
 mgmt.makePropertyKey('uuid').dataType(String.class).cardinality(Cardinality.SINGLE).make()
 mgmt.makePropertyKey('generation').dataType(Integer.class).cardinality(Cardinality.SINGLE).make()
 mgmt.makePropertyKey('total_error').dataType(Float.class).cardinality(Cardinality.SINGLE).make()
@@ -26,6 +32,9 @@ new File(nodeCSV).splitEachLine(",") { fields ->
 
 graph.tx().commit()
 
+
+// http://s3.thinkaurelius.com/docs/titan/current/indexes.html
+// 8.1.1. Mixed Index (Example of below)
 graph.tx().rollback()
 //println("Graph open? "+ graph.isOpen())
 mgmt = graph.openManagement()
@@ -57,4 +66,23 @@ mgmt.awaitGraphIndexStatus(graph, 'generationTotalError').status(SchemaStatus.EN
 //mgmt.awaitGraphIndexStatus(graph, 'generationTotalError').call()
 //println("About to close the graph")
 //graph.close()
+// ~~~~~~~~~~~~~~~~~~~ Done adding vertices and indexing at this point. ~~~~~~~~~~~~~~~
+
+// vv**************** Testing adding edge to existing vertices ***********************vv
+edgeCSV = "/Research/autoconstruction_neo4j/replace-space-with-newline__d_edges.csv"
+
+g = graph.traversal()
+
+counter = 0
+new File(edgeCSV).splitEachLine(",") { fielder ->
+	println("Count = ${counter}")
+    ++counter
+    if (counter > 1) { 
+		parent = g.V().has("uuid", fielder[0]).next()
+		child = g.V().has("uuid", fielder[1]).next()
+		graph.addEdge(parent, child, 'parent_of')
+	}
+}
+
+graph.tx().commit()
 
