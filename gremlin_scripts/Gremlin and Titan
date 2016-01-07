@@ -193,9 +193,11 @@ g.V().has('generation', 176).values('total_error').min()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 How to Titan 0.o:
 1) ssh to bebop
-2) cd to:
-cd /Research/titan-1.0.0-hadoop1/bin/gremlin.sh
-3) Use this in Gremlin:
+2) Change directories to:
+cd MAP/graph-DBs-and-genetic-programming/gremlin_scripts/
+and run:
+/Research/titan-1.0.0-hadoop1/bin/gremlin.sh
+3) Use this in Gremlin for Loading Vertices:
 :load LoadNodes.groovy
 4) Delete graph and searchindex with:
 rm -r filename
@@ -203,20 +205,24 @@ in:
 cd /Research/titan-1.0.0-hadoop1/tmp/
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Example of implementing buildMixedIndex:
+* http://s3.thinkaurelius.com/docs/titan/current/indexes.html
+* 8.1.1. Mixed Index
+
 Generally Running the Groovy Script: 
 * Always: graph is open & mgmt is closed afterwards
 * with 100: GraphIndexStatusReport returns success
-* with all: GraphIndexStatusReport returns failure
+* with all: GraphIndexStatusReport returns failure <- Needs time, still running after a half hour. 10:42
 
-Researching Edges:
+Researching Edges Notes:
 * Schema consists of: Edge labels and prperty keys 
 (you can label verticies, may be useful when referencing how indivual is dervied e.g. 'autocontruction' or 'random')
 
 * Edge label multiplicity options:
   - MULTI: Allows multiple edges of the same label between any pair of vertices.
   - SIMPLE: Allows at most one edge of such label between any pair of vertices.
-  - MANY2ONE: Allows at most one outgoing edge of such label on any vertex in the graph but places no constraint on incoming edges.
-	Example of Usage: 
+  - MANY2ONE: Allows at most one outgoing edge of such label on any vertex in the graph but places no constraint on incoming edges. (<- Used in 'mother' edge example)
+	Example Snippet of Usage: 
 	mgmt = graph.openManagement()
 	parent_of = mgmt.makeEdgeLabel('parent_of').multiplicity(MULTI).make()
 	mgmt.commit()
@@ -225,15 +231,14 @@ Researching Edges:
 	- http://s3.thinkaurelius.com/docs/titan/current/schema.html
 	- Under "Table 5.1. Native Titan Data Types"
 
-** Similar but different: Can we assign the vertex ID as the UUID?
+** Similar but different: Can we assign the vertex ID as the UUID? May be faster for finding vertex.
 
-** Also this: "It is strongly encouraged to explicitly define all schema elements and to disable automatic schema creation 
-by setting schema.default=none in the Titan graph configuration."
+** Also I found this in Titan Documentation: "It is strongly encouraged to explicitly define all schema elements and to disable automatic schema creation by setting schema.default=none in the Titan graph configuration."
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Some notes before leaving:
 
-* Running with edges gives this at end:
+* Running with edges code gives this at end:
 ==>0
 Count = 0
 Count = 1
@@ -245,5 +250,92 @@ No signature of method: com.thinkaurelius.titan.graphdb.database.StandardTitanGr
 	- http://gremlindocs.spmallette.documentup.com/#graphaddedge
 	- http://s3.thinkaurelius.com/docs/titan/0.5.4/schema.html#_relation_types
 	- http://s3.thinkaurelius.com/docs/titan/current/tx.html
-	- https://www.google.com/search?q=com.thinkaurelius.titan.graphdb.database.StandardTitanGraph.addEdge()+is+applicable+for+argument+types%3A+(com.thinkaurelius.titan.graphdb.vertices.CacheVertex%2C+com.thinkaurelius.titan.graphdb.vertices.CacheVertex%2C+java.lang.String)+values%3A&oq=com.thinkaurelius.titan.graphdb.database.StandardTitanGraph.addEdge()+is+applicable+for+argument+types%3A+(com.thinkaurelius.titan.graphdb.vertices.CacheVertex%2C+com.thinkaurelius.titan.graphdb.vertices.CacheVertex%2C+java.lang.String)+values%3A&aqs=chrome..69i57.341j0j4&sourceid=chrome&es_sm=93&ie=UTF-8#q=com.thinkaurelius.titan.graphdb.database.StandardTitanGraph.addEdge()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+***********************************************************************************************************************************
+
+12/29
+
+* Titan Console (aka Gremlin) Commands
+https://jaceklaskowski.gitbooks.io/titan-scala/content/titan-gremlin_aka_titan_console.html
+
+* TinkerPop3 Documentation
+http://tinkerpop.incubator.apache.org/docs/3.0.1-incubating/
+
+* Kindof helpful:
+https://jaceklaskowski.gitbooks.io/titan-scala/content/titan-finding_vertices.html
+
+* Size of folder commands:		12/29	12/30
+		du -sh graph/	-		137M	138M
+		du -sh searchindex/	-	23M		11M
+
+* Tried loading just nodes with full file, still does not finish after running for ~ 45 minutes.
+* Making smaller file from edge csv file <- Do not have the write permissions to create a new file in the current folder.
+
+* Looking at 1 Million Example (Given Below):
+  - A little dated, but I like the idea of a helper function to find verticies. 
+http://thinkaurelius.com/blog/
+~~~~~~~~~~~~~~~~~~~~~~~~ Start Example ~~~~~~~~~~~~~~~~~~~~~~~~
+g = TitanFactory.open('/tmp/1m')
+g.makeKey('userId').dataType(String.class).indexed(Vertex.class).unique().make()
+g.makeLabel('votesFor').make()
+g.commit()
+getOrCreate = { id ->
+  def p = g.V('userId', id)
+  if (p.hasNext()) ? p.next() : g.addVertex([userId:id])
+}
+new File('wiki-Vote.txt').eachLine {
+  if (!it.startsWith("#")){
+    (fromVertex, toVertex) = it.split('\t').collect(getOrCreate)
+    fromVertex.addEdge('votesFor', toVertex)
+  }
+}
+g.commit()
+~~~~~~~~~~~~~~~~~~~~~~~~ END EXAMPLE ~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~~~~~~~~~~~~~~~~ EXAMPLE OF USING 'collect' ~~~~~~~~~~~~~~~~
+
+def fruits = ["Banana", "Apple", "Grape", "Pear"]
+def upperCaseFruits = fruits.collect { it.toUpperCase() }
+println upperCaseFruits // [BANANA, APPLE, GRAPE, PEAR]
+
+~~~~~~~~~~~~~~~~~~~~~~~~ END EXAMPLE ~~~~~~~~~~~~~~~~~~~~~~~~
+
+*********** TESTING UUID ***********  
+22524de5-d59e-4640-8d6e-2a8ec4264e36
+************************************
+
+Number of lines in edges.csv:
+382001
+
+* Wrote script for LoadEdges.groovy
+  - Takes a long period of time to find existing nodes in a graph
+  - Not sure if indexing is working appropriately
+
+* Need to ask Nic what mathod he used to get the build mixed index working?
+  - If it is the case that build mixed index takes time, how do we know when it stops? 
+  - (When to load edges?)
+
+***********************************************************************************************************************************
+
+12/30
+
+* Removed the uuid as Nic did in other experiences to get build mixed index to finish.
+* Got the build mixed index to succeed after 45min, this did not help to load the edges faster.
+
+* Adding uuid back into the mixed index for better results hopefully.
+* No benefits :/
+
+* Creating different sized files to shorten waiting.
+
+
+***********************************************************************************************************************************
+
+1/7
+
+* Researching loading. 
+	- Take a look at Daniel Kuppitz's GitHub Example and posted comments here:
+	- "For Titan you'll need to add a line counter and then graph.tx().commit() every 10.000 lines or so. Also, in your Titan graph configuration, set storage.batch-loading=true to speed things up a bit."
+	- https://groups.google.com/forum/#!topic/aureliusgraphs/phHY9jYDHJY
+
+

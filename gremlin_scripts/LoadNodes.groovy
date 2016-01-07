@@ -1,88 +1,42 @@
-graph = TitanFactory.open("db.properties");
-
-
-//g = graph.traversal()
-
 //nodeCSV = "/Research/autoconstruction_neo4j/replace-space-with-newline__d_nodes_100.csv"
-nodeCSV = "/Research/autoconstruction_neo4j/replace-space-with-newline__d_nodes.csv"
+//nodeCSV = "/Research/autoconstruction_neo4j/replace-space-with-newline__d_nodes2000.csv"
+//nodeCSV = "/Research/autoconstruction_neo4j/replace-space-with-newline__d_nodes.csv"
 
-println("We're in the script")
+graph = TitanFactory.open('./db.properties')
 mgmt = graph.openManagement()
-
-// vv**************** Testing creating edge label ***********************vv
-println("We're making an edgeLabel")
-parent_of = mgmt.makeEdgeLabel('parent_of').multiplicity(MULTI).make()
-println("We're DONE making an edgeLabel")
-
-mgmt.makePropertyKey('uuid').dataType(String.class).cardinality(Cardinality.SINGLE).make()
-mgmt.makePropertyKey('generation').dataType(Integer.class).cardinality(Cardinality.SINGLE).make()
-mgmt.makePropertyKey('total_error').dataType(Float.class).cardinality(Cardinality.SINGLE).make()
+run_uuid = mgmt.makePropertyKey("run_uuid").dataType(String.class).make()
+uuid = mgmt.makePropertyKey("uuid").dataType(String.class).make()		
+generation = mgmt.makePropertyKey("generation").dataType(Integer.class).make()
+ocation = mgmt.makePropertyKey("location").dataType(Integer.class).make()
+total_error = mgmt.makePropertyKey("total_error").dataType(Float.class).make()
+numSelections = mgmt.makePropertyKey("numSelections").dataType(Float.class).make()
+numChildren = mgmt.makePropertyKey("numChildren").dataType(Float.class).make()
+uuidGenerationTotalError = mgmt.buildIndex('uuidGenerationTotalError', Vertex.class).addKey(generation).addKey(total_error).buildMixedIndex("search")
 mgmt.commit()
 
+println("Done with setting keys.")
+start = System.currentTimeMillis()
+println("We're in the parse section!")
+// Adding all verticies to graph
+theCount = 0
 count = 0
+nodeCSV = "/Research/autoconstruction_neo4j/replace-space-with-newline__d_nodes.csv"
 new File(nodeCSV).splitEachLine(",") { fields ->
-	println("Count = ${count}")
-    ++count
-    if (count > 1) { 
+println("Count = ${theCount}")
+    if (theCount > 0) { 
+		if(count == 10000){
+			graph.tx().commit()
+			count = 0;
+			println("Commiting!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+		}
 		graph.addVertex("run_uuid", fields[1], "uuid", fields[2], "generation", fields[3].toInteger(), 
 				"location", fields[4].toInteger(), "total_error", fields[5].toFloat(), 
 				"numSelections", fields[6].toInteger(), "numChildren", fields[7].toInteger())
 	}
+	++count
+	++theCount
 }
-
 graph.tx().commit()
 
-
-// http://s3.thinkaurelius.com/docs/titan/current/indexes.html
-// 8.1.1. Mixed Index (Example of below)
-graph.tx().rollback()
-//println("Graph open? "+ graph.isOpen())
-mgmt = graph.openManagement()
-//println("Graph open? open manage "+ graph.isOpen())
-uuid = mgmt.getPropertyKey('uuid')
-generation = mgmt.getPropertyKey('generation')
-total_error = mgmt.getPropertyKey('total_error')
-mgmt.buildIndex('generationTotalError', Vertex.class).addKey(generation).addKey(total_error).buildMixedIndex("search")
-println("About to commit")
-mgmt.commit()
-graph.tx().commit()
-
-println("About to wait for index")
-// Block until the SchemaStatus transitions from INSTALLED to REGISTERED
-mgmt.awaitGraphIndexStatus(graph, 'generationTotalError').status(SchemaStatus.REGISTERED).call()
-
-// Reindex using TitanManagement
-mgmt = graph.openManagement()
-println("About to get graph the index")
-i = mgmt.getGraphIndex('generationTotalError')
-println("About to update index")
-mgmt.updateIndex(i, SchemaAction.REINDEX)
-println("About to commit")
-mgmt.commit()
-
-// Enable the index
-println("About to Enable the index")
-mgmt.awaitGraphIndexStatus(graph, 'generationTotalError').status(SchemaStatus.ENABLED).call()
-//mgmt.awaitGraphIndexStatus(graph, 'generationTotalError').call()
-//println("About to close the graph")
-//graph.close()
-// ~~~~~~~~~~~~~~~~~~~ Done adding vertices and indexing at this point. ~~~~~~~~~~~~~~~
-
-// vv**************** Testing adding edge to existing vertices ***********************vv
-edgeCSV = "/Research/autoconstruction_neo4j/replace-space-with-newline__d_edges.csv"
-
-g = graph.traversal()
-
-counter = 0
-new File(edgeCSV).splitEachLine(",") { fielder ->
-	println("Count = ${counter}")
-    ++counter
-    if (counter > 1) { 
-		parent = g.V().has("uuid", fielder[0]).next()
-		child = g.V().has("uuid", fielder[1]).next()
-		graph.addEdge(parent, child, 'parent_of')
-	}
-}
-
-graph.tx().commit()
+println "Loading took (ms): " + (System.currentTimeMillis() - start)
 
