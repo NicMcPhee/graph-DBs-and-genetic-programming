@@ -338,4 +338,26 @@ Number of lines in edges.csv:
 	- "For Titan you'll need to add a line counter and then graph.tx().commit() every 10.000 lines or so. Also, in your Titan graph configuration, set storage.batch-loading=true to speed things up a bit."
 	- https://groups.google.com/forum/#!topic/aureliusgraphs/phHY9jYDHJY
 
+***********************************************************************************************************************************
+
+1/8
+
+* Add labels to verticies 
+	- Generation Nodes for stats on each generation
+	- Run Nodesfor stats on the whole run
+
+* For Gremlin Queries: 25+ Handy Gremlin Examples and Code Snippets for Graph Database Traversal and Manipulation
+	- http://www.fromdev.com/2013/09/Gremlin-Example-Query-Snippets-Graph-DB.html
+
+* Create A Index Using Gremlin <- Instead of composite index.
+	- This is to index the graph with specific field you may want to search frequently. Lets say "myfield" 
+	- g.createKeyIndex("myfield",Vertex.class);
+	- Note: The index creation can be done for not existing fields therefore incase you want to create a index for existing fields you may need to delete all and then create index.
+
+* For finding the the parents in the first generation of those with 0 total_error in the final round.
+g.V().has('total_error', 0).repeat(__.in('parent_of')).times(191).dedup().count()
+
+* Querying with mixed indexes 
+http://s3.thinkaurelius.com/docs/titan/1.0.0/search-predicates.html
+
 
