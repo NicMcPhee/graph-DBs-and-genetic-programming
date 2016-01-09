@@ -360,4 +360,6 @@ g.V().has('total_error', 0).repeat(__.in('parent_of')).times(191).dedup().count(
 * Querying with mixed indexes 
 http://s3.thinkaurelius.com/docs/titan/1.0.0/search-predicates.html
 
+* This query goes through each generation, counts the number of individuals in that generation that are an ancestor of a winner, and then prints that out. I'm guessing there's a more efficient way to do this (this duplicates a *lot* of search), but this works reasonably well on the 192 generation run. 
 
+`192.times { gen -> println gen + "\t" + g.V().has('total_error', 0).until(has('generation', gen)).repeat(inE().outV().dedup()).dedup().count().next() }`
