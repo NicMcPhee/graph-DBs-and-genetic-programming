@@ -392,7 +392,7 @@ queries. E.g.,
  * `anc.V().count()` (yields 19,935)
  * `anc.E().count()` (yields 39,842)
 
-~~~
+==========
 
 # 10 Jan
 
