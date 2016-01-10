@@ -360,4 +360,34 @@ g.V().has('total_error', 0).repeat(__.in('parent_of')).times(191).dedup().count(
 * Querying with mixed indexes 
 http://s3.thinkaurelius.com/docs/titan/1.0.0/search-predicates.html
 
+* This query goes through each generation, counts the number of individuals in that generation that are an ancestor of a winner, and then prints that out. I'm guessing there's a more efficient way to do this (this duplicates a *lot* of search), but this works reasonably well on the 192 generation run. 
 
+`192.times { gen -> println gen + "\t" + g.V().has('total_error', 0).until(has('generation', gen)).repeat(inE().outV().dedup()).dedup().count().next() }`
+
+***********************************************************************************************************************************
+
+1/9
+
+Nic figured out how to use subgraph extraction to create a subgraph that contains just the ancestors of winners. 
+There are several steps to the process.
+
+The first step is to specify the subgraph:
+
+ * `ancG = g.V().has('total_error', 0).repeat(__.inE().subgraph('sg').outV()).times(191).cap('sg').next()`
+
+The `g.V().has('total_error', 0)` part finds all the "winners". 
+The `repeat(__.inE().subgraph('sg').outV()).times(191)` part repeatedly searches out from those starting nodes,
+collecting ancestor nodes. We need `inE()` to specify incoming edges, and then `outV()` extracts the outgoing
+vertex on that edge (the parent). The `times(191)` part says to go all the way back to the first generation; that
+number would need to be updated for different size graphs with different numbers of generations. I (Nic) am entirely
+sure what the `cap` bit does, but it seems necessary. The `next()` bit extracts the resulting subgraph.
+
+This command takes a while, but not more than a minute or two.
+
+When this completes, then `ancG` is a graph, just like the kind we load from the property file, but it only contains
+the ancestors of the winners. From that we can get a `traversal()` just like on "regular" graphs, and then do regular
+queries. E.g.,
+
+ * `anc = ancG.traversal()`
+ * `anc.V().count()` (yields 19,935)
+ * `anc.E().count()` (yields 39,842)
