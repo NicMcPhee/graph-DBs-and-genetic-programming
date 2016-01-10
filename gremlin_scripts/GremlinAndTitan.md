@@ -391,3 +391,64 @@ queries. E.g.,
  * `anc = ancG.traversal()`
  * `anc.V().count()` (yields 19,935)
  * `anc.E().count()` (yields 39,842)
+
+~~~
+
+# 10 Jan
+
+Nic figured out how to go through all the nodes and edges in a graph, and output them in DOT format for turning
+into displayable PDFs. This took a while, and the syntax isn't what I would call entirely intuitive, but it works
+and is even beginning to make sense.
+
+Let's start with the query that prints out all the nodes:
+
+```
+anc.V().
+	as('v').values('uuid').as('id').
+	select('v').values('numChildren').as('nc').
+	select('v').values('total_error').as('te').
+	select('id', 'te', 'nc').
+	sideEffect{ printNode(fr, maxError, it.get()) }.
+	iterate(); null
+```
+Taking this apart:
+
+ * `anc.V()` just gets us all the vertices, like we've been doing.
+ * `as('v')` is important and took me a while to figure out; it gives a name to the current vertex being processed and allows us to "jump back" to that vertex with a `select('v')` command.
+ * `.values('uuid').as('id')` extracts the UUID from that node and gives it a name ('id').
+ * `.select('v')` tells it to jump back to (whole) vertex. If we didn't have that, all subsequent steps would be applied to the UUID (which is just a string) coming from the previous step.
+ * `.values('numChildren').as('nc')` and `select('v').values('total_error').as('te')` are just like the UUID bit above.
+ * `select('id', 'te', 'nc')` bundles together the ID, total error, and number of children in a little map, which is what we'll pass to our `printNode` function below.
+ * `sideEffect{ printNode(fr, maxError, it.get()) }` was a piece that perhaps took me the longest. I couldn't figure out how to "print stuff out", especially in a way that wasn't interleaved with all the Gremlin output. So in the end I opened up a FileWriter (that's what `fr` is) and wrote a function `printNode` that printed a node line to that file. That function is fairly ugly but uninformative; see below. The `sideEffect` step lets you do things that have side effects (like print out node lines) without affecting what gets sent down the pipeline. There's really nothing here "down the pipeline", but if there was it would just receive the result of the `select('id', 'te', 'nc')` step. The `get()` bit is important -- it extracts the map from the little Tinkerpop bundle that came from `select`.
+ * `iterate(); null` took a little while to figure out. Adding the `null` statement at the end means that the whole "line" returns null, and allows us to skip the vast ocean of printing to the terminal that would go on if we ran this on a big graph. Interestingly, though, Tinkerpop/Gremlin is lazy and only processes the elements in a pipeline that are actually _used_ in some way. Thus if you just stuck `; null` after the `sideEffect` line, Tinkerpop would say "Hey, no one actually needs _anything_ from this pipeline, so lets just skip it all and do nothing!". Not good. Adding `iterate()` to the end of hte pipeline "forces" it to process its contents even if we're not going to look at the outputs.
+
+In writing this up, I suspect we may not need the three `values()` lines and could just pass the node (or something like `valuesMap()`) directly into `printNode`. We may need them (or something like them) in the query that processes edges, but I'm not sure.
+
+The edge processing query:
+
+```
+anc.E().
+        as('e').outV().values('uuid').as('parent').
+        select('e').inV().values('uuid').as('child').
+	select('parent', 'child').
+        sideEffect{ printEdge(fr, it.get()) }.
+        iterate(); null
+```
+
+is much the same, but it uses `outV()` and `inV()` to get the output vertex (parent) and input vertex (child) for the given edge.
+
+As mentioned above, `printNode` is pretty ugly (lots of string manipulation), so I'll just include `printEdge` here:
+
+```groovy
+void printEdge(fr, e) {
+     fr.println('"' + e['parent'] + '"' + " -> " + '"' + e['child'] + '"' + ";")
+}
+```
+
+`e` is a map with two entries, and in groovy (like Ruby and Python) we can access map entries with an array-like syntax: `e['parent']. So this prings a line to the file of the form:
+
+```
+"e9e7e755-3fcd-46ec-b3a4-e02f010f9531" -> "dd87f949-10ba-44e8-a034-f77b945d81e8";
+```
+
+where the first string is the parent UUID and the second is the child UUID; in DOT this will cause an edge to be drawn from the parent node to the child node.
