@@ -430,7 +430,7 @@ The edge processing query:
 anc.E().
         as('e').outV().values('uuid').as('parent').
         select('e').inV().values('uuid').as('child').
-	select('parent', 'child').
+        select('parent', 'child').
         sideEffect{ printEdge(fr, it.get()) }.
         iterate(); null
 ```
