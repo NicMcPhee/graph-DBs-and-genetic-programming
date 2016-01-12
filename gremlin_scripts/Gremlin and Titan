@@ -360,4 +360,8 @@ g.V().has('total_error', 0).repeat(__.in('parent_of')).times(191).dedup().count(
 * Querying with mixed indexes 
 http://s3.thinkaurelius.com/docs/titan/1.0.0/search-predicates.html
 
-
+* When creating a visual of the winner line
+	- Box size based on numSeltions or numChildren
+	- Highlight where the genome changes
+	- Compute Levenstein distance between these children and parents genomes
+	- Eliminate same parent being both parents (eliminate the extra edge)
