@@ -1,5 +1,5 @@
 ***********************************************************************************************************************************
-Notes from 11/9, unless specified otherwise.
+Notes from # Nov 9, unless specified otherwise.
 
 graph = TitanFactory.open('conf/titan-berkeleyje-es.properties')
 
@@ -79,7 +79,7 @@ https://www.youtube.com/watch?v=wtiUjna9IMo
 
 ***********************************************************************************************************************************
 
-11/16
+# Nov 16
 
 To run script in Gremlin:
 :load /home/casal033/MAP/graph-DBs-and-genetic-programming/gremlin_scripts/LoadNodes.groovy
@@ -94,7 +94,7 @@ gremlin> g.V().has('total_error', 0f).next()
 
 ***********************************************************************************************************************************
 
-11/23
+# Nov 23
 
 * We're currently deleting the database directory to delete graphs *
 Gremlin remove all Vertex:
@@ -122,7 +122,7 @@ gremlin> g.addEdge(null,v1,v2,'pal',[weight:0.75f])
 
 ***********************************************************************************************************************************
 
-11/30
+# Nov 30
 
 * When running gremlin script, if graph directory exists and do not have the write permissions, bad error message occurs
 
@@ -142,7 +142,7 @@ Use :load LoadNodes.groovy in gremlin
 
 ***********************************************************************************************************************************
 
-12/7
+# Dec 7
 
 Range with ints:
 g.V().has("total_error", inside(0,150)).count()
@@ -161,7 +161,7 @@ Dec 07, 2015 7:12:14 PM com.google.common.cache.LocalCache processPendingNotific
 
 ***********************************************************************************************************************************
 
-12/8
+# Dec 8
 
 Nic did some playing around and confirmed that we did just need to wait for the index building to finish. 
 Not sure how long it actually took, but probably between 30 and 60 minutes.
@@ -189,7 +189,7 @@ g.V().has('generation', 176).values('total_error').min()
 
 ***********************************************************************************************************************************
 
-12/28
+# Dec 28
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 How to Titan 0.o:
 1) ssh to bebop
@@ -254,7 +254,7 @@ No signature of method: com.thinkaurelius.titan.graphdb.database.StandardTitanGr
 
 ***********************************************************************************************************************************
 
-12/29
+# Dec 29
 
 * Titan Console (aka Gremlin) Commands
 https://jaceklaskowski.gitbooks.io/titan-scala/content/titan-gremlin_aka_titan_console.html
@@ -318,7 +318,7 @@ Number of lines in edges.csv:
 
 ***********************************************************************************************************************************
 
-12/30
+# Dec 30
 
 * Removed the uuid as Nic did in other experiences to get build mixed index to finish.
 * Got the build mixed index to succeed after 45min, this did not help to load the edges faster.
@@ -331,7 +331,7 @@ Number of lines in edges.csv:
 
 ***********************************************************************************************************************************
 
-1/7
+# 7 Jan
 
 * Researching loading. 
 	- Take a look at Daniel Kuppitz's GitHub Example and posted comments here:
@@ -340,16 +340,16 @@ Number of lines in edges.csv:
 
 ***********************************************************************************************************************************
 
-1/8
+# 8 Jan
 
 * Add labels to verticies 
 	- Generation Nodes for stats on each generation
-	- Run Nodesfor stats on the whole run
+	- Run Nodes for stats on the whole run
 
 * For Gremlin Queries: 25+ Handy Gremlin Examples and Code Snippets for Graph Database Traversal and Manipulation
 	- http://www.fromdev.com/2013/09/Gremlin-Example-Query-Snippets-Graph-DB.html
 
-* Create A Index Using Gremlin <- Instead of composite index.
+* Create A Index Using Gremlin (Instead of composite index)
 	- This is to index the graph with specific field you may want to search frequently. Lets say "myfield" 
 	- g.createKeyIndex("myfield",Vertex.class);
 	- Note: The index creation can be done for not existing fields therefore incase you want to create a index for existing fields you may need to delete all and then create index.
@@ -365,3 +365,118 @@ http://s3.thinkaurelius.com/docs/titan/1.0.0/search-predicates.html
 	- Highlight where the genome changes
 	- Compute Levenstein distance between these children and parents genomes
 	- Eliminate same parent being both parents (eliminate the extra edge)
+
+* This query goes through each generation, counts the number of individuals in that generation that are an ancestor of a winner, and then prints that out. I'm guessing there's a more efficient way to do this (this duplicates a *lot* of search), but this works reasonably well on the 192 generation run. 
+
+`192.times { gen -> println gen + "\t" + g.V().has('total_error', 0).until(has('generation', gen)).repeat(inE().outV().dedup()).dedup().count().next() }`
+
+***********************************************************************************************************************************
+
+# 9 Jan
+
+Nic figured out how to use subgraph extraction to create a subgraph that contains just the ancestors of winners. 
+There are several steps to the process.
+
+The first step is to specify the subgraph:
+
+ * `ancG = g.V().has('total_error', 0).repeat(__.inE().subgraph('sg').outV()).times(191).cap('sg').next()`
+
+The `g.V().has('total_error', 0)` part finds all the "winners". 
+The `repeat(__.inE().subgraph('sg').outV()).times(191)` part repeatedly searches out from those starting nodes,
+collecting ancestor nodes. We need `inE()` to specify incoming edges, and then `outV()` extracts the outgoing
+vertex on that edge (the parent). The `times(191)` part says to go all the way back to the first generation; that
+number would need to be updated for different size graphs with different numbers of generations. I (Nic) am entirely
+sure what the `cap` bit does, but it seems necessary. The `next()` bit extracts the resulting subgraph.
+
+This command takes a while, but not more than a minute or two.
+
+When this completes, then `ancG` is a graph, just like the kind we load from the property file, but it only contains
+the ancestors of the winners. From that we can get a `traversal()` just like on "regular" graphs, and then do regular
+queries. E.g.,
+
+ * `anc = ancG.traversal()`
+ * `anc.V().count()` (yields 19,935)
+ * `anc.E().count()` (yields 39,842)
+
+==========
+
+# 10 Jan
+
+Nic figured out how to go through all the nodes and edges in a graph, and output them in DOT format for turning
+into displayable PDFs. This took a while, and the syntax isn't what I would call entirely intuitive, but it works
+and is even beginning to make sense.
+
+Let's start with the query that prints out all the nodes:
+
+```
+anc.V().
+	as('v').values('uuid').as('id').
+	select('v').values('numChildren').as('nc').
+	select('v').values('total_error').as('te').
+	select('id', 'te', 'nc').
+	sideEffect{ printNode(fr, maxError, it.get()) }.
+	iterate(); null
+```
+Taking this apart:
+
+ * `anc.V()` just gets us all the vertices, like we've been doing.
+ * `as('v')` is important and took me a while to figure out; it gives a name to the current vertex being processed and allows us to "jump back" to that vertex with a `select('v')` command.
+ * `.values('uuid').as('id')` extracts the UUID from that node and gives it a name ('id').
+ * `.select('v')` tells it to jump back to (whole) vertex. If we didn't have that, all subsequent steps would be applied to the UUID (which is just a string) coming from the previous step.
+ * `.values('numChildren').as('nc')` and `select('v').values('total_error').as('te')` are just like the UUID bit above.
+ * `select('id', 'te', 'nc')` bundles together the ID, total error, and number of children in a little map, which is what we'll pass to our `printNode` function below.
+ * `sideEffect{ printNode(fr, maxError, it.get()) }` was a piece that perhaps took me the longest. I couldn't figure out how to "print stuff out", especially in a way that wasn't interleaved with all the Gremlin output. So in the end I opened up a FileWriter (that's what `fr` is) and wrote a function `printNode` that printed a node line to that file. That function is fairly ugly but uninformative; see below. The `sideEffect` step lets you do things that have side effects (like print out node lines) without affecting what gets sent down the pipeline. There's really nothing here "down the pipeline", but if there was it would just receive the result of the `select('id', 'te', 'nc')` step. The `get()` bit is important -- it extracts the map from the little Tinkerpop bundle that came from `select`.
+ * `iterate(); null` took a little while to figure out. Adding the `null` statement at the end means that the whole "line" returns null, and allows us to skip the vast ocean of printing to the terminal that would go on if we ran this on a big graph. Interestingly, though, Tinkerpop/Gremlin is lazy and only processes the elements in a pipeline that are actually _used_ in some way. Thus if you just stuck `; null` after the `sideEffect` line, Tinkerpop would say "Hey, no one actually needs _anything_ from this pipeline, so lets just skip it all and do nothing!". Not good. Adding `iterate()` to the end of hte pipeline "forces" it to process its contents even if we're not going to look at the outputs.
+
+In writing this up, I suspect we may not need the three `values()` lines and could just pass the node (or something like `valuesMap()`) directly into `printNode`. We may need them (or something like them) in the query that processes edges, but I'm not sure.
+
+The edge processing query:
+
+```
+anc.E().
+        as('e').outV().values('uuid').as('parent').
+        select('e').inV().values('uuid').as('child').
+        select('parent', 'child').
+        sideEffect{ printEdge(fr, it.get()) }.
+        iterate(); null
+```
+
+is much the same, but it uses `outV()` and `inV()` to get the output vertex (parent) and input vertex (child) for the given edge.
+
+As mentioned above, `printNode` is pretty ugly (lots of string manipulation), so I'll just include `printEdge` here:
+
+```groovy
+void printEdge(fr, e) {
+     fr.println('"' + e['parent'] + '"' + " -> " + '"' + e['child'] + '"' + ";")
+}
+```
+
+`e` is a map with two entries, and in groovy (like Ruby and Python) we can access map entries with an array-like syntax: `e['parent']. So this prings a line to the file of the form:
+
+```
+"e9e7e755-3fcd-46ec-b3a4-e02f010f9531" -> "dd87f949-10ba-44e8-a034-f77b945d81e8";
+```
+
+where the first string is the parent UUID and the second is the child UUID; in DOT this will cause an edge to be drawn from the parent node to the child node.
+
+***********************************************************************************************************************************
+
+# 12 Jan
+
+* Tasks to consider:
+	- Figure out how to parse 'raw' run files into Titan
+	- Do we write something for GECCO?
+	- Dynamic displays w/ something Gephi/Sigma.js/etc
+	- Dig through the 'interesting' individuals in current run
+	- Do all of this on Amazon!
+	- For dot pdf:
+		- Change height of boxes proportional to number of children
+		- Remove weird chircles at end of each generation
+	- For Titan graph db:
+		- Compute the Levenshtein distance between parent/child verticies
+		- Compute the distance between error vectors
+		- Add the difference between total_errors
+		- Mark 'mother_of' & 'father_of' edges versus just 'parent_of'
+		- Add 'Generation' nodes and 'Run' nodes
+
+

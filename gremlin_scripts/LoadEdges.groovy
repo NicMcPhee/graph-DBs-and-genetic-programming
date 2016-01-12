@@ -29,8 +29,8 @@ new File(edgeCSV).splitEachLine(",") { fielder ->
 	println("Count = ${counter}")
     if (counter > 0) { 
 		if((counter % 10000) == 0){
-			graph.tx().commit()
 			println("Commiting at: "+counter)
+			graph.tx().commit()
 		}
 		//println("This is what we get "+fielder[0])
    		parentVertex = g.V().has("uuid", fielder[0]).next()

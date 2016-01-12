@@ -8,3 +8,6 @@ bin/batch_importer_21
 # the R-Markdown tool generates a bunch of HTML files that we don't really
 # want in the repo.
 R/*.html
+
+# We don't want emacs temp files
+*~
