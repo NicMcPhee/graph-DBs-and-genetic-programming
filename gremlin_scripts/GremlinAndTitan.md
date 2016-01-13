@@ -1,5 +1,7 @@
 ***********************************************************************************************************************************
-Notes from # Nov 9, unless specified otherwise.
+# Nov 9
+
+* Notes from 11/9 unless specified otherwise.
 
 graph = TitanFactory.open('conf/titan-berkeleyje-es.properties')
 
@@ -398,7 +400,7 @@ queries. E.g.,
  * `anc.V().count()` (yields 19,935)
  * `anc.E().count()` (yields 39,842)
 
-==========
+***********************************************************************************************************************************
 
 # 10 Jan
 
@@ -464,9 +466,9 @@ where the first string is the parent UUID and the second is the child UUID; in D
 # 12 Jan
 
 * Tasks to consider:
-	- Figure out how to parse 'raw' run files into Titan
-	- Do we write something for GECCO?
-	- Dynamic displays w/ something Gephi/Sigma.js/etc
+	- Figure out how to parse 'raw' run files into Titan - DONE
+	- Dynamic displays w/ something Gephi/Sigma.js/etc - Focus on later in semester.
+	- Do we write something for GECCO? - Yes! At least try.
 	- Dig through the 'interesting' individuals in current run
 	- Do all of this on Amazon!
 	- For dot pdf:
@@ -475,8 +477,7 @@ where the first string is the parent UUID and the second is the child UUID; in D
 	- For Titan graph db:
 		- Compute the Levenshtein distance between parent/child verticies
 		- Compute the distance between error vectors
-		- Add the difference between total_errors
-		- Mark 'mother_of' & 'father_of' edges versus just 'parent_of'
-		- Add 'Generation' nodes and 'Run' nodes
-
+		- Add the difference between total_errors - Can be stored on edges.
+		- Mark 'mother_of' & 'father_of' edges versus just 'parent_of' - DONE
+		- Add 'Generation' nodes and 'Run' nodes - Focus on later.
 
