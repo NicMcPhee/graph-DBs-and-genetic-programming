@@ -6,7 +6,7 @@
 
 // Uncomment these two lines if you don't have the ancestral subgraph computed.
 
-// ancG = g.V().has('total_error', 0).repeat(__.inE().subgraph('sg').outV()).times(191).cap('sg').next()
+// ancG = g.V().has('total_error', 0).repeat(__.has('is_random_replacement', false).inE().subgraph('sg').outV()).times(997).cap('sg').next()
 // anc = ancG.traversal()
 
 // The target node line:format

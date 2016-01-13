@@ -481,3 +481,18 @@ where the first string is the parent UUID and the second is the child UUID; in D
 		- Mark 'mother_of' & 'father_of' edges versus just 'parent_of' - DONE
 		- Add 'Generation' nodes and 'Run' nodes - Focus on later.
 
+***********************************************************************************************************************************
+
+# 13 Jan
+
+* Looked at runs generated before Lee's changes:
+	- data8.csv.gz (310M) had a winner in 457 generations
+	- data18.csv.gz (440M) had a winner in 693 generations
+	- data16.csv.gz (3.1G) had a total_error of 46
+
+* In the newest runs:
+	- data7 looks promising, but has a huge genome. The total_error is currently 3, but isn't finished yet.
+	- data5 is the only run with a winner thus far at 977 generations
+	- Everything else (all other runs) has a best total_error in the tirple digits.
+
+
