@@ -37,6 +37,7 @@ is_random_replacement = mgmt.makePropertyKey("is_random_replacement").dataType(B
 
 num_children = mgmt.makePropertyKey("num_children").dataType(Integer.class).make()
 num_selections = mgmt.makePropertyKey("num_selections").dataType(Integer.class).make()
+num_ancestry_children = mgmt.makePropertyKey("num_ancestry_children").dataType(Integer.class).make()
 
 // Edge properties
 parent_type = mgmt.makePropertyKey("parent_type").dataType(String.class).make()
@@ -98,9 +99,3 @@ println("Count = ${theCount}")
 graph.tx().commit()
 
 println "Loading took (ms): " + (System.currentTimeMillis() - start)
-
-// For finding and adding num_selections and num_children into vertices.
-// Not working yet.
-//g.V().limit(1000).as('v').outE().count().as('s').select('v', 's').sideEffect{ v=it.get()['v']; s=it.get()['s']; v.property('num_selections', s) }.iterate(); null
-//g.V().as('v').outE().inV().dedup().count().as('c').select('v', 'c').sideEffect{ v=it.get()['v']; c=it.get()['c']; v.property('num_children', c) }.iterate(); null
-

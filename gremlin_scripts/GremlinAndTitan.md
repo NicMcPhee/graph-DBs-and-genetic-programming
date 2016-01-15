@@ -214,7 +214,8 @@ Example of implementing buildMixedIndex:
 Generally Running the Groovy Script: 
 * Always: graph is open & mgmt is closed afterwards
 * with 100: GraphIndexStatusReport returns success
-* with all: GraphIndexStatusReport returns failure <- Needs time, still running after a half hour. 10:42
+* with all: GraphIndexStatusReport returns failure 
+(Needs time, still running after a half hour. 10:42)
 
 Researching Edges Notes:
 * Schema consists of: Edge labels and prperty keys 
@@ -223,7 +224,7 @@ Researching Edges Notes:
 * Edge label multiplicity options:
   - MULTI: Allows multiple edges of the same label between any pair of vertices.
   - SIMPLE: Allows at most one edge of such label between any pair of vertices.
-  - MANY2ONE: Allows at most one outgoing edge of such label on any vertex in the graph but places no constraint on incoming edges. (<- Used in 'mother' edge example)
+  - MANY2ONE: Allows at most one outgoing edge of such label on any vertex in the graph but places no constraint on incoming edges. (Used in 'mother' edge example)
 	Example Snippet of Usage: 
 	mgmt = graph.openManagement()
 	parent_of = mgmt.makeEdgeLabel('parent_of').multiplicity(MULTI).make()
@@ -272,7 +273,7 @@ https://jaceklaskowski.gitbooks.io/titan-scala/content/titan-finding_vertices.ht
 		du -sh searchindex/	-	23M		11M
 
 * Tried loading just nodes with full file, still does not finish after running for ~ 45 minutes.
-* Making smaller file from edge csv file <- Do not have the write permissions to create a new file in the current folder.
+* Making smaller file from edge csv file (Do not have the write permissions to create a new file in the current folder).
 
 * Looking at 1 Million Example (Given Below):
   - A little dated, but I like the idea of a helper function to find verticies. 
@@ -303,7 +304,7 @@ println upperCaseFruits // [BANANA, APPLE, GRAPE, PEAR]
 
 ~~~~~~~~~~~~~~~~~~~~~~~~ END EXAMPLE ~~~~~~~~~~~~~~~~~~~~~~~~
 
-*********** TESTING UUID ***********  
+*********** TESTING UUID ***********
 22524de5-d59e-4640-8d6e-2a8ec4264e36
 ************************************
 
@@ -441,7 +442,7 @@ anc.E().
         select('parent', 'child').
         sideEffect{ printEdge(fr, it.get()) }.
         iterate(); null
-```
+```questions
 
 is much the same, but it uses `outV()` and `inV()` to get the output vertex (parent) and input vertex (child) for the given edge.
 
@@ -449,7 +450,7 @@ As mentioned above, `printNode` is pretty ugly (lots of string manipulation), so
 
 ```groovy
 void printEdge(fr, e) {
-     fr.println('"' + e['parent'] + '"' + " -> " + '"' + e['child'] + '"' + ";")
+     fr.println('"' + e['parent'] + '"' + " -> " + '"' + e['child'] + '"' + ";")to visit
 }
 ```
 
@@ -494,5 +495,35 @@ where the first string is the parent UUID and the second is the child UUID; in D
 	- data7 looks promising, but has a huge genome. The total_error is currently 3, but isn't finished yet.
 	- data5 is the only run with a winner thus far at 977 generations
 	- Everything else (all other runs) has a best total_error in the tirple digits.
+
+***********************************************************************************************************************************
+
+# 14 Jan
+
+* Look at link, under "Changing Schma Elements":
+http://s3.thinkaurelius.com/docs/titan/current/schema.html
+
+***********************************************************************************************************************************
+
+# 15 Jan
+
+* With the larger graphs, we can load them and see where they become reproductively competent.
+* Then we can reload from that point, and limit our graph.
+
+* Lines for adding num_selections, num_children, and num_ancestry_children:
+
+(0..977).each { gen -> g.V().has('generation', gen).sideEffect { num_selections = it.get().edges(Direction.OUT).size(); it.get().property('num_selections', num_selections) }.iterate(); graph.tx().commit(); println gen }
+
+(0..977).each { gen -> g.V().has('generation', gen).sideEffect { edges = it.get().edges(Direction.OUT); num_children = edges.collect { it.inVertex() }.unique().size(); it.get().property('num_children', num_children) }.iterate(); graph.tx().commit(); println gen }
+
+(0..977).each { gen -> anc.V().has('generation', gen).sideEffect { edges = it.get().edges(Direction.OUT); num_ancestry_children = edges.collect { it.inVertex() }.unique().size(); it.get().property('num_ancestry_children', num_ancestry_children) }.iterate(); graph.tx().commit(); println gen }
+
+* Commits are important!!!
+* Adding num_ancestry_children will be removed upon closing the graph. Needs to be recomputed each time using anc traversals.
+
+* Ancesty graph:
+	- Played with the height and width ratios for the dot pdf. There a 5:1 ratio where the height is 5 times larger than the width for the same number of children.
+	- Played with box colors in the upper 2/3 range, havn't seen this yet.
+	- Added two different grays for the pdf, dark gray for 'mother' and a light gray for 'father'.
 
 
