@@ -526,4 +526,17 @@ http://s3.thinkaurelius.com/docs/titan/current/schema.html
 	- Played with box colors in the upper 2/3 range, havn't seen this yet.
 	- Added two different grays for the pdf, dark gray for 'mother' and a light gray for 'father'.
 
+***********************************************************************************************************************************
 
+# 19 Jan
+
+GECCO Paper deadlines
+Start Tuesday January 26, 2016 End Wednesday January 27, 2016
+
+*Planning:
+	- We'll need to format our csv reader to align with the other csv files. (csv includes the program now)
+	- Get a larger range of colors for dot pdf
+	- Remove the mother and father distintion
+	- May have to play with vertical alignment of multiple graphs
+	- Have it determin the last generation - NOT HARDCODED
+	- Have function for making ancestry graph (takes in graph and run uuids) and seperate function for creating dot file 
