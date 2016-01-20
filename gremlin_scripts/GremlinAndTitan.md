@@ -540,3 +540,11 @@ Start Tuesday January 26, 2016 End Wednesday January 27, 2016
 	- May have to play with vertical alignment of multiple graphs
 	- Have it determin the last generation - NOT HARDCODED
 	- Have function for making ancestry graph (takes in graph and run uuids) and seperate function for creating dot file 
+
+***************************
+
+# 20 Jan
+
+There's a Groovy CSV library that we might want to look into: http://xlson.com/groovycsv/
+
+We might want to revisit the use of `BatchGraph` as described in the ["Powers of 10" articles](http://thinkaurelius.com/2014/05/29/powers-of-ten-part-i/) since `BatchGraph` appears to provide the intermediate commits so we don't have to do them by hand. In the other hand, it's not obvious if `BatchGraph` is still in Tinkerpop stuff. [This API page](http://tinkerpop.apache.org/javadocs/3.0.0.M8-incubating/full/org/apache/tinkerpop/gremlin/structure/util/batch/BatchGraph.html) does suggest that maybe it is?
