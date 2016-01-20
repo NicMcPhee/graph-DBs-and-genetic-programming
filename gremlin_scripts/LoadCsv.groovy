@@ -1,3 +1,6 @@
+import java.io.*
+import java.util.zip.GZIPInputStream
+
 // Based on an algorithm by maythesource.com:
 // http://stackoverflow.com/a/15905916
 def fastSplit(String s) {
@@ -19,7 +22,8 @@ def fastSplit(String s) {
 
 runUUID = java.util.UUID.randomUUID()
 
-graph = TitanFactory.open('./db.properties')
+/*
+graph = TitanFactory.open('./rswn_db.properties')
 g = graph.traversal()
 
 mgmt = graph.openManagement()
@@ -46,56 +50,65 @@ parent_type = mgmt.makePropertyKey("parent_type").dataType(String.class).make()
 uuidIndex = mgmt.buildIndex("uuidIndex",  Vertex.class).addKey(uuid).unique().buildCompositeIndex()
 generationTotalError = mgmt.buildIndex('generationTotalError', Vertex.class).addKey(generation).addKey(total_error).buildMixedIndex("search")
 mgmt.commit()
-
-
-
 println("Done with setting keys.")
+*/
+
 start = System.currentTimeMillis()
 println("We're in the parse section!")
 // Adding all verticies to graph
 theCount = 0
-nodeCSV = "/Research/autoconstruction_2016_01/data5.csv"
-new File(nodeCSV).eachLine() { line ->
-println("Count = ${theCount}")
+nodeCSVzipped = "/Research/RSWN/data0.csv.gz"
+fileStream = new FileInputStream(nodeCSVzipped)
+gzipStream = new GZIPInputStream(fileStream)
+inputReader = new InputStreamReader(gzipStream)
+reader = new BufferedReader(inputReader)
+while ((line = reader.readLine()) != null) {
+    println("Count = ${theCount}")
     if (theCount > 0) { 
-		// This line takes a long time and seems costly. 
-		// Want to find a more efficient parsing thing.
-		// fields = line.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*\$)")
 		fields = fastSplit(line)
+		// println fields
+		// This only makes sense if we're using is-random-replacement
+		// (and it's in location 9).
+		/*
 		if (fields[9] == "") {
 			fields[9] = true
 		}
-		errors = fields[10..-1].collect { it.toFloat() }
+		*/
+		// errors = fields[10..-1].collect { it.toFloat() }
 
 		if((theCount % 10000) == 0){
-			// println fields
-			// println fields[3]
-			// println fields[7]
 			println("Commiting at: "+theCount)
 			graph.tx().commit()
 		}
 
 		newVertex = graph.addVertex("run_uuid", runUUID, "uuid", fields[0], "generation", fields[1].toInteger(), 
 				"location", fields[2].toInteger(), "genetic_operators", fields[4], // "plush_genome", fields[7], 
-				"total_error", fields[8].toFloat(), "is_random_replacement", fields[9].toBoolean())
+//				"total_error", fields[8].toFloat(), "is_random_replacement", fields[9].toBoolean())
+				"total_error", fields[9].toFloat())
 		// errors.each { newVertex.property("error_vector", it) }
 
 		if (fields[3].length() > 5) {
 			motherUuid = fields[3][4..39]
-			fatherUuid = fields[3][45..-5]
-
 			// println "<" + motherUuid + "> ::: <" + fatherUuid + ">"
-
 			mother = g.V().has("uuid", motherUuid).next()
-			father = g.V().has("uuid", fatherUuid).next()
 			motherEdge = mother.addEdge('parent_of', newVertex)
-			motherEdge.property("parent_type", "mother")
-			fatherEdge = father.addEdge('parent_of', newVertex)
-			fatherEdge.property("parent_type", "father")
+			// We commented out the properties because they're not meaningful
+			// for the non-autoconstructive runs.
+			// motherEdge.property("parent_type", "mother")
+
+			if (fields[3].length() > 48) {
+				fatherUuid = fields[3][45..-5]
+				father = g.V().has("uuid", fatherUuid).next()
+				fatherEdge = father.addEdge('parent_of', newVertex)
+				// fatherEdge.property("parent_type", "father")
+			}
+
 		}
 	}
 	++theCount
 }
+reader.close()
 graph.tx().commit()
 
 println "Loading took (ms): " + (System.currentTimeMillis() - start)
+

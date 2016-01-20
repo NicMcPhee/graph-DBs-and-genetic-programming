@@ -548,3 +548,8 @@ Start Tuesday January 26, 2016 End Wednesday January 27, 2016
 There's a Groovy CSV library that we might want to look into: http://xlson.com/groovycsv/
 
 We might want to revisit the use of `BatchGraph` as described in the ["Powers of 10" articles](http://thinkaurelius.com/2014/05/29/powers-of-ten-part-i/) since `BatchGraph` appears to provide the intermediate commits so we don't have to do them by hand. In the other hand, it's not obvious if `BatchGraph` is still in Tinkerpop stuff. [This API page](http://tinkerpop.apache.org/javadocs/3.0.0.M8-incubating/full/org/apache/tinkerpop/gremlin/structure/util/batch/BatchGraph.html) does suggest that maybe it is?
+
+We were able to load two runs into the same database and plot their winning ancestries!
+
+We learned that if you add the `num_children` property, etc., _after_ constructing the winning ancestor subgraph, those properties don't propogate from `g` to `anc`. You then have to regenerate `anc` and re-add the `num_ancestry_children` property.
+
