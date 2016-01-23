@@ -7,15 +7,26 @@
 // Uncomment these two lines if you don't have the ancestral subgraph computed.
 
 // ancG = g.V().has('total_error', 0).repeat(__.has('is_random_replacement', false).inE().subgraph('sg').outV()).times(977).cap('sg').next()
-// ancG = g.V().has('total_error', 0).repeat(__.inE().subgraph('sg').outV()).times(977).cap('sg').next()
-// anc = ancG.traversal()
+ancG = g.V().or(__.has('total_error', 0), __.has('generation', 300)).repeat(__.inE().subgraph('sg').outV().dedup()).times(977).cap('sg').next()
+anc = ancG.traversal()
+
+(0..310).each { gen -> anc.V().has('generation', gen).sideEffect { edges = it.get().edges(Direction.OUT); num_ancestry_children = edges.collect { it.inVertex() }.unique().size(); it.get().property('num_ancestry_children', num_ancestry_children) }.iterate(); graph.tx().commit(); println gen }
 
 // The target node line:format
 //	"87:719" [shape=rectangle, width=4, style=filled, fillcolor="0.5 1 1"];
 void printNode(fr, maxError, n) {
      width = n['ns']/50
      height = n['nac']/10
-     hue = 1.0/3 + (2.0/3)*Math.log(n['te']+1)/Math.log(maxError+1)
+
+	 error_ceiling = 10000
+	 if (maxError < error_ceiling) {
+		error_ceiling = maxError
+	 }
+	 total_error = n['te']
+	 if (total_error > error_ceiling) {
+		total_error = error_ceiling
+	 }
+     hue = 1.0/3 + (2.0/3)*Math.log(total_error+1)/Math.log(error_ceiling+1)
      color = "\"${hue} 1 1\""
      
      name = '"' + n['id'] + '"'

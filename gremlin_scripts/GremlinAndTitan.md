@@ -194,17 +194,17 @@ g.V().has('generation', 176).values('total_error').min()
 # Dec 28
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 How to Titan 0.o:
-1) ssh to bebop
+1) `ssh` to bebop
 2) Change directories to:
-cd MAP/graph-DBs-and-genetic-programming/gremlin_scripts/
+`cd MAP/graph-DBs-and-genetic-programming/gremlin_scripts/`
 and run:
-/Research/titan-1.0.0-hadoop1/bin/gremlin.sh
+`/Research/titan-1.0.0-hadoop1/bin/gremlin.sh`
 3) Use this in Gremlin for Loading Vertices:
-:load LoadNodes.groovy
+`:load LoadNodes.groovy`
 4) Delete graph and searchindex with:
-rm -r filename
+`rm -r filename`
 in:
-cd /Research/titan-1.0.0-hadoop1/tmp/
+`cd /Research/titan-1.0.0-hadoop1/tmp/`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Example of implementing buildMixedIndex:
@@ -265,9 +265,6 @@ https://jaceklaskowski.gitbooks.io/titan-scala/content/titan-gremlin_aka_titan_c
 * TinkerPop3 Documentation
 http://tinkerpop.incubator.apache.org/docs/3.0.1-incubating/
 
-* Kindof helpful:
-https://jaceklaskowski.gitbooks.io/titan-scala/content/titan-finding_vertices.html
-
 * Size of folder commands:		12/29	12/30
 		du -sh graph/	-		137M	138M
 		du -sh searchindex/	-	23M		11M
@@ -277,8 +274,10 @@ https://jaceklaskowski.gitbooks.io/titan-scala/content/titan-finding_vertices.ht
 
 * Looking at 1 Million Example (Given Below):
   - A little dated, but I like the idea of a helper function to find verticies. 
-http://thinkaurelius.com/blog/
+  - http://thinkaurelius.com/blog/
+
 ~~~~~~~~~~~~~~~~~~~~~~~~ Start Example ~~~~~~~~~~~~~~~~~~~~~~~~
+```
 g = TitanFactory.open('/tmp/1m')
 g.makeKey('userId').dataType(String.class).indexed(Vertex.class).unique().make()
 g.makeLabel('votesFor').make()
@@ -294,22 +293,8 @@ new File('wiki-Vote.txt').eachLine {
   }
 }
 g.commit()
+```
 ~~~~~~~~~~~~~~~~~~~~~~~~ END EXAMPLE ~~~~~~~~~~~~~~~~~~~~~~~~
-
-~~~~~~~~~~~~~~~~~ EXAMPLE OF USING 'collect' ~~~~~~~~~~~~~~~~
-
-def fruits = ["Banana", "Apple", "Grape", "Pear"]
-def upperCaseFruits = fruits.collect { it.toUpperCase() }
-println upperCaseFruits // [BANANA, APPLE, GRAPE, PEAR]
-
-~~~~~~~~~~~~~~~~~~~~~~~~ END EXAMPLE ~~~~~~~~~~~~~~~~~~~~~~~~
-
-*********** TESTING UUID ***********
-22524de5-d59e-4640-8d6e-2a8ec4264e36
-************************************
-
-Number of lines in edges.csv:
-382001
 
 * Wrote script for LoadEdges.groovy
   - Takes a long period of time to find existing nodes in a graph
@@ -358,7 +343,7 @@ Number of lines in edges.csv:
 	- Note: The index creation can be done for not existing fields therefore incase you want to create a index for existing fields you may need to delete all and then create index.
 
 * For finding the the parents in the first generation of those with 0 total_error in the final round.
-g.V().has('total_error', 0).repeat(__.in('parent_of')).times(191).dedup().count()
+`g.V().has('total_error', 0).repeat(__.in('parent_of')).times(191).dedup().count()`
 
 * Querying with mixed indexes 
 http://s3.thinkaurelius.com/docs/titan/1.0.0/search-predicates.html
@@ -473,8 +458,8 @@ where the first string is the parent UUID and the second is the child UUID; in D
 	- Dig through the 'interesting' individuals in current run
 	- Do all of this on Amazon!
 	- For dot pdf:
-		- Change height of boxes proportional to number of children
-		- Remove weird chircles at end of each generation
+		- Change height of boxes proportional to number of children - DONE
+		- Remove weird chircles at end of each generation - DONE
 	- For Titan graph db:
 		- Compute the Levenshtein distance between parent/child verticies
 		- Compute the distance between error vectors
@@ -512,11 +497,11 @@ http://s3.thinkaurelius.com/docs/titan/current/schema.html
 
 * Lines for adding num_selections, num_children, and num_ancestry_children:
 
-(0..977).each { gen -> g.V().has('generation', gen).sideEffect { num_selections = it.get().edges(Direction.OUT).size(); it.get().property('num_selections', num_selections) }.iterate(); graph.tx().commit(); println gen }
+(0..310).each { gen -> g.V().has('generation', gen).sideEffect { num_selections = it.get().edges(Direction.OUT).size(); it.get().property('num_selections', num_selections) }.iterate(); graph.tx().commit(); println gen }
 
-(0..977).each { gen -> g.V().has('generation', gen).sideEffect { edges = it.get().edges(Direction.OUT); num_children = edges.collect { it.inVertex() }.unique().size(); it.get().property('num_children', num_children) }.iterate(); graph.tx().commit(); println gen }
+(0..310).each { gen -> g.V().has('generation', gen).sideEffect { edges = it.get().edges(Direction.OUT); num_children = edges.collect { it.inVertex() }.unique().size(); it.get().property('num_children', num_children) }.iterate(); graph.tx().commit(); println gen }
 
-(0..977).each { gen -> anc.V().has('generation', gen).sideEffect { edges = it.get().edges(Direction.OUT); num_ancestry_children = edges.collect { it.inVertex() }.unique().size(); it.get().property('num_ancestry_children', num_ancestry_children) }.iterate(); graph.tx().commit(); println gen }
+(0..310).each { gen -> anc.V().has('generation', gen).sideEffect { edges = it.get().edges(Direction.OUT); num_ancestry_children = edges.collect { it.inVertex() }.unique().size(); it.get().property('num_ancestry_children', num_ancestry_children) }.iterate(); graph.tx().commit(); println gen }
 
 * Commits are important!!!
 * Adding num_ancestry_children will be removed upon closing the graph. Needs to be recomputed each time using anc traversals.
@@ -531,9 +516,9 @@ http://s3.thinkaurelius.com/docs/titan/current/schema.html
 # 19 Jan
 
 GECCO Paper deadlines
-Start Tuesday January 26, 2016 End Wednesday January 27, 2016
+Start Tuesday January 26, 2016 : End Wednesday January 27, 2016
 
-*Planning:
+* Planning:
 	- We'll need to format our csv reader to align with the other csv files. (csv includes the program now)
 	- Get a larger range of colors for dot pdf
 	- Remove the mother and father distintion
@@ -541,7 +526,7 @@ Start Tuesday January 26, 2016 End Wednesday January 27, 2016
 	- Have it determin the last generation - NOT HARDCODED
 	- Have function for making ancestry graph (takes in graph and run uuids) and seperate function for creating dot file 
 
-***************************
+***********************************************************************************************************************************
 
 # 20 Jan
 
@@ -552,4 +537,38 @@ We might want to revisit the use of `BatchGraph` as described in the ["Powers of
 We were able to load two runs into the same database and plot their winning ancestries!
 
 We learned that if you add the `num_children` property, etc., _after_ constructing the winning ancestor subgraph, those properties don't propogate from `g` to `anc`. You then have to regenerate `anc` and re-add the `num_ancestry_children` property.
+
+***********************************************************************************************************************************
+
+# 23 Jan
+
+* The RSWN runs from thelmuth's dissertation.
+	Winners:
+	- data0, 1, 5, 6, 8, 90, 91, 93, 95, 97, 99
+
+	Non-Winners:
+	- data2, 3, 4, 7, 9, 92, 94, 96, 98
+
+* We need a way of telling which runs are which in Titan.
+	- Maybe this is a good time to add labels to verticies, and also add the run verticies?
+
+* For advertising the project
+	- Make bookmarks with link to githubpage (to be made)
+
+* Added labels (run and individual) and learned they're not indexed.
+* Added run verticies 
+	- Added `successful` as a property
+	- Added `data_file` as a property to recall which file we're looking at
+	- Probably want `max_generation` as a property
+
+
+* Working on making ancestry graphs for successful and unsuccessful runs. Trying to figure out how to do BOTH at once with:
+`ancG = g.V().or(__.has('total_error', 0), __.has('generation', 300)).repeat(__.inE().subgraph('sg').outV()).times(977).cap('sg').next()`
+However, this is taking a long time. Wondering if the `or` is a problem, or maybe the `has('generation', 300)` aspect since this returns 1000 per unsuccessful run.
+
+With:
+`ancG = g.V().or(__.has('total_error', 0), __.has('generation', 300)).repeat(__.inE().subgraph('sg').outV().dedup()).times(977).cap('sg').next()`
+Play with `dedup()` try with and without to see if it makes a difference.
+
+
 

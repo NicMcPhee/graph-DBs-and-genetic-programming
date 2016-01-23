@@ -1,3 +1,4 @@
+// A comment here for coloring to show in file w/ gedit.
 import java.io.*
 import java.util.zip.GZIPInputStream
 
@@ -29,6 +30,8 @@ g = graph.traversal()
 mgmt = graph.openManagement()
 
 // Node properties
+successful = mgmt.makePropertyKey("successful").dataType(Boolean.class).make()
+
 run_uuid = mgmt.makePropertyKey("run_uuid").dataType(String.class).make()
 uuid = mgmt.makePropertyKey("uuid").dataType(String.class).make()
 generation = mgmt.makePropertyKey("generation").dataType(Integer.class).make()
@@ -43,10 +46,15 @@ num_children = mgmt.makePropertyKey("num_children").dataType(Integer.class).make
 num_selections = mgmt.makePropertyKey("num_selections").dataType(Integer.class).make()
 num_ancestry_children = mgmt.makePropertyKey("num_ancestry_children").dataType(Integer.class).make()
 
+// Vertex Labels
+individual = mgmt.makeVertexLabel('individual').make()
+run = mgmt.makeVertexLabel('run').make()
+
 // Edge properties
 parent_type = mgmt.makePropertyKey("parent_type").dataType(String.class).make()
 
 // Indexing
+successfulIndex = mgmt.buildIndex("successfulIndex", Vertex.class).addKey(successful).indexOnly(run).buildCompositeIndex()
 uuidIndex = mgmt.buildIndex("uuidIndex",  Vertex.class).addKey(uuid).unique().buildCompositeIndex()
 generationTotalError = mgmt.buildIndex('generationTotalError', Vertex.class).addKey(generation).addKey(total_error).buildMixedIndex("search")
 mgmt.commit()
@@ -54,16 +62,22 @@ println("Done with setting keys.")
 */
 
 start = System.currentTimeMillis()
+
 println("We're in the parse section!")
 // Adding all verticies to graph
 theCount = 0
-nodeCSVzipped = "/Research/RSWN/data0.csv.gz"
+runFileName = "data3.csv.gz"
+nodeCSVzipped = "/Research/RSWN/" + runFileName
+
 fileStream = new FileInputStream(nodeCSVzipped)
 gzipStream = new GZIPInputStream(fileStream)
 inputReader = new InputStreamReader(gzipStream)
 reader = new BufferedReader(inputReader)
+successful = false
 while ((line = reader.readLine()) != null) {
-    println("Count = ${theCount}")
+	if (theCount % 100 == 0) {
+	    println("Count = ${theCount}")
+	}
     if (theCount > 0) { 
 		fields = fastSplit(line)
 		// println fields
@@ -81,10 +95,14 @@ while ((line = reader.readLine()) != null) {
 			graph.tx().commit()
 		}
 
-		newVertex = graph.addVertex("run_uuid", runUUID, "uuid", fields[0], "generation", fields[1].toInteger(), 
+		total_error = fields[9].toFloat()
+		if (total_error == 0) {
+			successful = true;
+		}
+		newVertex = graph.addVertex(label, "individual", "run_uuid", runUUID, "uuid", fields[0], "generation", fields[1].toInteger(), 
 				"location", fields[2].toInteger(), "genetic_operators", fields[4], // "plush_genome", fields[7], 
-//				"total_error", fields[8].toFloat(), "is_random_replacement", fields[9].toBoolean())
-				"total_error", fields[9].toFloat())
+//				"total_error", total_error, "is_random_replacement", fields[9].toBoolean())
+				"total_error", total_error)
 		// errors.each { newVertex.property("error_vector", it) }
 
 		if (fields[3].length() > 5) {
@@ -109,6 +127,8 @@ while ((line = reader.readLine()) != null) {
 }
 reader.close()
 graph.tx().commit()
+
+runVertex = graph.addVertex(label, "run", "run_uuid", runUUID, "data_file", runFileName, "successful", successful)
 
 println "Loading took (ms): " + (System.currentTimeMillis() - start)
 
