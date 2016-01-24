@@ -1,16 +1,39 @@
 // Uncomment these first two lines if you're running this for the first time and don't have the
 // graph loaded.
 
-// graph = TitanFactory.open('./db.properties')
+// graph = TitanFactory.open('rswn_db.properties')
 // g = graph.traversal()
 
 // Uncomment these two lines if you don't have the ancestral subgraph computed.
 
 // ancG = g.V().has('total_error', 0).repeat(__.has('is_random_replacement', false).inE().subgraph('sg').outV()).times(977).cap('sg').next()
-ancG = g.V().or(__.has('total_error', 0), __.has('generation', 300)).repeat(__.inE().subgraph('sg').outV().dedup()).times(977).cap('sg').next()
+
+// This gets kind of complicated because we have to collect together both the
+// winners (for the successful runs) and the individuals in the last generation
+// (for the unsuccessful runs). We first tried both `or` and `union`, but both
+// of those took forever and were really infeasible. It turns out that if we
+// extract both sets independently (which is fast thanks to indexing). save them
+// in Groovy lists, and then use `inject` and `unfold` to insert them into a
+// pipeline, then everything works.
+
+/*
+winners = []
+// The `; null` just spares us a ton of printing
+g.V().has('total_error', 0).fill(winners) ; null
+
+// The 300 here assumes that unsuccessful runs go out to generation 300. We should
+// try to remove that magic constant, maybe by querying for the largest generation?
+gen300 = []
+g.V().has('generation', 300).fill(gen300); null
+
+// The `unfold()` is necessary to convert the two big lists (which is how
+// `inject()` adds `winners` and `gen300` to the pipeline) into a sequence
+// of their contents.
+ancG = inject(winners).inject(gen300).unfold().repeat(__.inE().subgraph('sg').outV().dedup()).times(977).cap('sg').next()
 anc = ancG.traversal()
 
 (0..310).each { gen -> anc.V().has('generation', gen).sideEffect { edges = it.get().edges(Direction.OUT); num_ancestry_children = edges.collect { it.inVertex() }.unique().size(); it.get().property('num_ancestry_children', num_ancestry_children) }.iterate(); graph.tx().commit(); println gen }
+*/
 
 // The target node line:format
 //	"87:719" [shape=rectangle, width=4, style=filled, fillcolor="0.5 1 1"];
