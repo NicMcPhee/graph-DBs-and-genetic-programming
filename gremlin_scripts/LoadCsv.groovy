@@ -23,8 +23,8 @@ def fastSplit(String s) {
 
 runUUID = java.util.UUID.randomUUID()
 
-/*
-graph = TitanFactory.open('./rswn_db.properties')
+
+graph = TitanFactory.open('./db.properties')
 g = graph.traversal()
 
 mgmt = graph.openManagement()
@@ -59,23 +59,23 @@ uuidIndex = mgmt.buildIndex("uuidIndex",  Vertex.class).addKey(uuid).unique().bu
 generationTotalError = mgmt.buildIndex('generationTotalError', Vertex.class).addKey(generation).addKey(total_error).buildMixedIndex("search")
 mgmt.commit()
 println("Done with setting keys.")
-*/
 
 start = System.currentTimeMillis()
 
 println("We're in the parse section!")
 // Adding all verticies to graph
 theCount = 0
-runFileName = "data3.csv.gz"
-nodeCSVzipped = "/Research/RSWN/" + runFileName
+runFileName = "data7.csv.gz"
+nodeCSVzipped = "/Research/RSWN/recursive-variance-v3/" + runFileName
 
 fileStream = new FileInputStream(nodeCSVzipped)
 gzipStream = new GZIPInputStream(fileStream)
 inputReader = new InputStreamReader(gzipStream)
 reader = new BufferedReader(inputReader)
 successful = false
+maxGen = 0
 while ((line = reader.readLine()) != null) {
-	if (theCount % 100 == 0) {
+	if (theCount % 1000 == 0) {
 	    println("Count = ${theCount}")
 	}
     if (theCount > 0) { 
@@ -83,26 +83,30 @@ while ((line = reader.readLine()) != null) {
 		// println fields
 		// This only makes sense if we're using is-random-replacement
 		// (and it's in location 9).
-		/*
+		
 		if (fields[9] == "") {
 			fields[9] = true
 		}
-		*/
+		
 		// errors = fields[10..-1].collect { it.toFloat() }
 
 		if((theCount % 10000) == 0){
 			println("Commiting at: "+theCount)
 			graph.tx().commit()
 		}
-
-		total_error = fields[9].toFloat()
+	// Remember to change this to fields[9] when working with non autoconstuctive runs!
+		total_error = fields[8].toFloat()
 		if (total_error == 0) {
 			successful = true;
 		}
+		gen = fields[1].toInteger()
+		if (gen > maxGen){
+			maxGen = gen;
+		}
 		newVertex = graph.addVertex(label, "individual", "run_uuid", runUUID, "uuid", fields[0], "generation", fields[1].toInteger(), 
 				"location", fields[2].toInteger(), "genetic_operators", fields[4], // "plush_genome", fields[7], 
-//				"total_error", total_error, "is_random_replacement", fields[9].toBoolean())
-				"total_error", total_error)
+				"total_error", total_error, "is_random_replacement", fields[9].toBoolean())
+//				"total_error", total_error)
 		// errors.each { newVertex.property("error_vector", it) }
 
 		if (fields[3].length() > 5) {
@@ -112,13 +116,13 @@ while ((line = reader.readLine()) != null) {
 			motherEdge = mother.addEdge('parent_of', newVertex)
 			// We commented out the properties because they're not meaningful
 			// for the non-autoconstructive runs.
-			// motherEdge.property("parent_type", "mother")
+			 motherEdge.property("parent_type", "mother")
 
 			if (fields[3].length() > 48) {
 				fatherUuid = fields[3][45..-5]
 				father = g.V().has("uuid", fatherUuid).next()
 				fatherEdge = father.addEdge('parent_of', newVertex)
-				// fatherEdge.property("parent_type", "father")
+				 fatherEdge.property("parent_type", "father")
 			}
 
 		}
@@ -128,7 +132,13 @@ while ((line = reader.readLine()) != null) {
 reader.close()
 graph.tx().commit()
 
-runVertex = graph.addVertex(label, "run", "run_uuid", runUUID, "data_file", runFileName, "successful", successful)
+(0..maxGen).each { gen -> g.V().has('generation', gen).sideEffect { num_selections = it.get().edges(Direction.OUT).size(); it.get().property('num_selections', num_selections) }.iterate(); graph.tx().commit(); println gen }
+
+(0..maxGen).each { gen -> g.V().has('generation', gen).sideEffect { edges = it.get().edges(Direction.OUT); num_children = edges.collect { it.inVertex() }.unique().size(); it.get().property('num_children', num_children) }.iterate(); graph.tx().commit(); println gen }
+
+runVertex = graph.addVertex(label, "run", "run_uuid", runUUID, "data_file", runFileName, "successful", successful, "max_generation", maxGen)
+
+graph.tx().commit()
 
 println "Loading took (ms): " + (System.currentTimeMillis() - start)
 

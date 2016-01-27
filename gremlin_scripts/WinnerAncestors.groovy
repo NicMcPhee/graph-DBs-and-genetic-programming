@@ -6,7 +6,8 @@
 
 // Uncomment these two lines if you don't have the ancestral subgraph computed.
 
-// ancG = g.V().has('total_error', 0).repeat(__.has('is_random_replacement', false).inE().subgraph('sg').outV()).times(977).cap('sg').next()
+ancG = g.V().has('total_error', 0).repeat(__.has('is_random_replacement', false).inE().subgraph('sg').outV().dedup()).times(800).cap('sg').next()
+anc = ancG.traversal()
 
 // This gets kind of complicated because we have to collect together both the
 // winners (for the successful runs) and the individuals in the last generation
@@ -31,9 +32,12 @@ g.V().has('generation', 300).fill(gen300); null
 // of their contents.
 ancG = inject(winners).inject(gen300).unfold().repeat(__.inE().subgraph('sg').outV().dedup()).times(977).cap('sg').next()
 anc = ancG.traversal()
-
-(0..310).each { gen -> anc.V().has('generation', gen).sideEffect { edges = it.get().edges(Direction.OUT); num_ancestry_children = edges.collect { it.inVertex() }.unique().size(); it.get().property('num_ancestry_children', num_ancestry_children) }.iterate(); graph.tx().commit(); println gen }
 */
+
+maxGen = anc.V().values('generation').max().next()
+maxError = anc.V().values('total_error').max().next()
+
+(0..maxGen).each { gen -> anc.V().has('generation', gen).sideEffect { edges = it.get().edges(Direction.OUT); num_ancestry_children = edges.collect { it.inVertex() }.unique().size(); it.get().property('num_ancestry_children', num_ancestry_children) }.iterate(); graph.tx().commit(); println gen }
 
 // The target node line:format
 //	"87:719" [shape=rectangle, width=4, style=filled, fillcolor="0.5 1 1"];
@@ -66,22 +70,17 @@ void printNode(fr, maxError, n) {
 // The target edge line format:
 //	"82:393" -> "83:619";
 void printEdge(fr, e) {
-	/*
 	if (e['type'] == "mother") {
 		c = "gray40";
 	} else {
 		c = "gray70";
 	}
-	*/
-	c = "lightgray"
+	// c = "lightgray"
     fr.println('"' + e['parent'] + '"' + " -> " + '"' + e['child'] + '"' + " [color=\"${c}\"];")
 }
 
-maxGen = anc.V().values('generation').max().next()
-maxError = anc.V().values('total_error').max().next()
-
 // Open the DOT file, print the DOT header info.
-fr = new java.io.FileWriter("/tmp/two_runs_ancestors.dot")
+fr = new java.io.FileWriter("/Research/RSWN/recursive-variance-v3/data7_ancestors.dot")
 fr.println("digraph G {")
 
 // Generate nodes for all the generations
@@ -106,8 +105,8 @@ anc.V().
 anc.E().
 	as('e').outV().values('uuid').as('parent').
 	select('e').inV().values('uuid').as('child').
-	// select('e').values('parent_type').as('type').
-	select('parent', 'child'). // , 'type').
+	select('e').values('parent_type').as('type').
+	select('parent', 'child', 'type').
 	sideEffect{ printEdge(fr, it.get()) }.
 	iterate(); null
 
