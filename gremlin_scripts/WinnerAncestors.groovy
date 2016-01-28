@@ -4,10 +4,31 @@
 // graph = TitanFactory.open('rswn_db.properties')
 // g = graph.traversal()
 
+def all_ancestors(starters) {
+    result = starters
+    last_generation = starters
+    while (last_generation.size() > 0) {
+        current_generation = []
+	inject(last_generation).unfold().has('is_random_replacement', false).inE().outV().dedup().fill(current_generation)
+	result += current_generation
+	last_generation = current_generation
+    }
+    return result
+}
+
+/*
+winners = []
+// The `; null` just spares us a ton of printing
+g.V().has('total_error', 0).fill(winners) ; null
+
+ancestors = all_ancestors(winners) ; null
+ancG = inject(ancestors).unfold().inE().subgraph('sg').cap('sg').next()
+anc = ancG.traversal()
+/*
 // Uncomment these two lines if you don't have the ancestral subgraph computed.
 
-ancG = g.V().has('total_error', 0).repeat(__.has('is_random_replacement', false).inE().subgraph('sg').outV().dedup()).times(800).cap('sg').next()
-anc = ancG.traversal()
+// ancG = g.V().has('total_error', 0).repeat(__.has('is_random_replacement', false).inE().subgraph('sg').outV().dedup()).times(800).cap('sg').next()
+// anc = ancG.traversal()
 
 // This gets kind of complicated because we have to collect together both the
 // winners (for the successful runs) and the individuals in the last generation
