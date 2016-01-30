@@ -570,5 +570,10 @@ With:
 `ancG = g.V().or(__.has('total_error', 0), __.has('generation', 300)).repeat(__.inE().subgraph('sg').outV().dedup()).times(977).cap('sg').next()`
 Play with `dedup()` try with and without to see if it makes a difference.
 
+***********************************************************************************************************************************
 
+# 30 Jan
+
+Ghost Script! Used to resize pdfs:
+gs -sDEVICE=pdfwrite -dFIXEDMEDIA -dPDFFitPage -dCompatibilityLevel=1.4 -dPDFSETTINGS=/screen -sPAPERSIZE=letter -dNOPAUSE -dQUIET -dBATCH -sOutputFile=output_file.pdf input_file.pdf
 
