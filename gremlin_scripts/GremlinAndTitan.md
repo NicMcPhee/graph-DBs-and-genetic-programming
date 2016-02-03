@@ -583,3 +583,9 @@ To simplify working with the 4 run database I figured out what the 4 run UUIDs m
 * 238ccc3a-1567-4196-95d5-2f5cd38b8602: run1, which is a successful run that has 1 winner in generation 129.
 * 7a7184e1-2a5c-4b8a-9317-f816155ed22a: run2, which is unsuccessful and doesn't look like it's ever getting anywhere. It's best total error at generation 300 is 215, and there's almost no structure in the run after the initial settling out.
 * cce34700-5c32-4fe4-8388-31dded53381b: run3, which is unsuccessful but looks quite promising. The best total error at the end was 45, and there seems to be "action", so it's possible that some generations might have led to a solution.
+
+
+
+
+scp  bebop:/Research/RSWN/lexicase/colored_output_run0.pdf MAP/graph-DBs-and-genetic-programming/gremlin_scripts/
+

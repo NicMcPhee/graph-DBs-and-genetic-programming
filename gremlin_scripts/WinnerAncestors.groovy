@@ -1,6 +1,6 @@
 // Uncomment these first two lines if you're running this for the first time and don't have the
 // graph loaded.
-
+import java.io.*
 graph = TitanFactory.open('rswn_db.properties')
 g = graph.traversal()
 
@@ -41,12 +41,13 @@ anc = ancG.traversal()
 // in Groovy lists, and then use `inject` and `unfold` to insert them into a
 // pipeline, then everything works.
 
-target_run_uuid = '7a7184e1-2a5c-4b8a-9317-f816155ed22a'
+// target_run_uuid = '7a7184e1-2a5c-4b8a-9317-f816155ed22a'
 // target_run_uuid = '238ccc3a-1567-4196-95d5-2f5cd38b8602'
+target_run_uuid = '325546e6-3af5-4f3d-b890-5aacd9f9b1e7'
 
 winners = []
 // The `; null` just spares us a ton of printing
-g.V().has('total_error', 0).has('run_uuid', target_run_uuid).fill(winners) ; null
+g.V().has('total_error', 0).has('run_uuid', target_run_uuid).fill(winners); null
 
 // The 300 here assumes that unsuccessful runs go out to generation 300. We should
 // try to remove that magic constant, maybe by querying for the largest generation?
@@ -56,7 +57,7 @@ g.V().has('generation', 300).has('run_uuid', target_run_uuid).fill(gen300); null
 // The `unfold()` is necessary to convert the two big lists (which is how
 // `inject()` adds `winners` and `gen300` to the pipeline) into a sequence
 // of their contents.
-ancG = inject(winners).inject(gen300).unfold().inE().outV().inE().outV().inE().outV().dedup().repeat(__.inE().subgraph('sg').outV().dedup()).times(977).cap('sg').next()
+ancG = inject(winners).inject(gen300).unfold().repeat(__.inE().subgraph('sg').outV().dedup()).times(977).cap('sg').next()
 anc = ancG.traversal()
 
 maxGen = anc.V().values('generation').max().next()
@@ -102,13 +103,36 @@ void printEdge(fr, e) {
 		c = "gray70";
 	}
 	*/
-	c = "lightgray"
-    fr.println('"' + e['parent'] + '"' + " -> " + '"' + e['child'] + '"' + " [color=\"${c}\"];")
+
+	edgeWidth = (1+(e['ns']/1000))*3
+	transparency = e['ns']
+	rounded = (int) Math.round(transparency);
+	trans = Integer.toHexString(rounded).toUpperCase();
+	
+	if (e['gos'] == "[:alternation :uniform-mutation]"){
+		// c = "palevioletred";
+		c = "#DB7093"+trans;
+	} else if (e['gos'] == ":alternation") {
+		// c = "orange";
+		c = "#FFA500"+trans;
+	} else if (e['gos'] == ":uniform-mutation") {
+		// c = "orangered";
+		c = "#FF4500"+trans;
+	} else if (e['gos'] == ":uniform-close-mutation") {
+		// c = "saddlebrown";
+		c = "#8B4513"+trans;
+	} else {
+		// c = "lightgray";
+		c = "#808080"+trans;
+	}
+	//c = "lightgray"
+    // fr.println('"' + e['parent'] + '"' + " -> " + '"' + e['child'] + '"' + " [color=\"${c}\", penwidth=${edgeWidth}];")
+	fr.println('"' + e['parent'] + '"' + " -> " + '"' + e['child'] + '"' + " [color=\"${c}\", penwidth=${edgeWidth}];")
 }
 
 // Open the DOT file, print the DOT header info.
 // fr = new java.io.FileWriter("/Research/RSWN/recursive-variance-v3/data7_ancestors.dot")
-fr = new java.io.FileWriter("/Research/RSWN/lexicase/run2_ancestors.dot")
+fr = new java.io.FileWriter("/Research/RSWN/lexicase/run0_ancestors_colored_edges.dot")
 fr.println("digraph G {")
 
 // Generate nodes for all the generations
@@ -117,7 +141,7 @@ fr.println((0..maxGen).collect{ '"Gen ' + it + '"' }.join(" -> ") + " [style=inv
 
 // Set up the defaults for nodes and edges.
 fr.println('node[shape=point, width=0.15, height=0.15, fillcolor="white", penwidth=1, label=""];')
-fr.println('edge[arrowsize=0.5, color="grey"];')
+fr.println('edge[arrowsize=0.5, color="grey", penwidth=1];')
 
 // Process all the vertices
 anc.V().
@@ -131,10 +155,12 @@ anc.V().
 
 // Process all the edges
 anc.E().
-	as('e').outV().values('uuid').as('parent').
+	as('e').outV().values('num_selections').as('ns').
+	select('e').outV().values('uuid').as('parent').
 	select('e').inV().values('uuid').as('child').
+	select('e').inV().values('genetic_operators').as('gos').
 	// select('e').values('parent_type').as('type').
-	select('parent', 'child'). // , 'type').
+	select('parent', 'child', 'gos', 'ns'). // , 'type').
 	sideEffect{ printEdge(fr, it.get()) }.
 	iterate(); null
 
