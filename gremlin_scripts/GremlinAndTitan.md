@@ -587,5 +587,4 @@ To simplify working with the 4 run database I figured out what the 4 run UUIDs m
 
 
 
-scp  bebop:/Research/RSWN/lexicase/colored_output_run0.pdf MAP/graph-DBs-and-genetic-programming/gremlin_scripts/
-
+scp  bebop:/Research/RSWN/lexicase/colored_output_run0.pdf .

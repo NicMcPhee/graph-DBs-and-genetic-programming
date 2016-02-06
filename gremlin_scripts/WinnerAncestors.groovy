@@ -104,26 +104,33 @@ void printEdge(fr, e) {
 	}
 	*/
 
+	// Add one and multiply by three to make the line visible
 	edgeWidth = (1+(e['ns']/1000))*3
-	transparency = e['ns']
+	// Add 30 to make the line visible <- This needs to be played with some more still.
+	// I'm not understanding the range of visibility?
+	transparency = ((e['nc']/1000)*255)+30
 	rounded = (int) Math.round(transparency);
+	if (rounded > 255) {
+		rounded = 255
+	} 
+	println("This is rounded: "+rounded)
 	trans = Integer.toHexString(rounded).toUpperCase();
-	
+	println("This is color: "+trans)
 	if (e['gos'] == "[:alternation :uniform-mutation]"){
 		// c = "palevioletred";
-		c = "#DB7093"+trans;
+		c = "#DB7093"+rounded;
 	} else if (e['gos'] == ":alternation") {
 		// c = "orange";
-		c = "#FFA500"+trans;
+		c = "#FFA500"+rounded;
 	} else if (e['gos'] == ":uniform-mutation") {
 		// c = "orangered";
-		c = "#FF4500"+trans;
+		c = "#FF4500"+rounded;
 	} else if (e['gos'] == ":uniform-close-mutation") {
 		// c = "saddlebrown";
-		c = "#8B4513"+trans;
+		c = "#8B4513"+rounded;
 	} else {
 		// c = "lightgray";
-		c = "#808080"+trans;
+		c = "#808080"+rounded;
 	}
 	//c = "lightgray"
     // fr.println('"' + e['parent'] + '"' + " -> " + '"' + e['child'] + '"' + " [color=\"${c}\", penwidth=${edgeWidth}];")
@@ -156,11 +163,12 @@ anc.V().
 // Process all the edges
 anc.E().
 	as('e').outV().values('num_selections').as('ns').
+	select('e').outV().values('num_children').as('nc').
 	select('e').outV().values('uuid').as('parent').
 	select('e').inV().values('uuid').as('child').
 	select('e').inV().values('genetic_operators').as('gos').
 	// select('e').values('parent_type').as('type').
-	select('parent', 'child', 'gos', 'ns'). // , 'type').
+	select('parent', 'child', 'gos', 'ns', 'nc'). // , 'type').
 	sideEffect{ printEdge(fr, it.get()) }.
 	iterate(); null
 
