@@ -1,6 +1,7 @@
 // Uncomment these first two lines if you're running this for the first time and don't have the
 // graph loaded.
 import java.io.*
+
 graph = TitanFactory.open('rswn_db.properties')
 g = graph.traversal()
 
@@ -42,8 +43,10 @@ anc = ancG.traversal()
 // pipeline, then everything works.
 
 // target_run_uuid = '7a7184e1-2a5c-4b8a-9317-f816155ed22a'
-// target_run_uuid = '238ccc3a-1567-4196-95d5-2f5cd38b8602'
-target_run_uuid = '325546e6-3af5-4f3d-b890-5aacd9f9b1e7'
+// Run 1
+target_run_uuid = '238ccc3a-1567-4196-95d5-2f5cd38b8602'
+// Run 0
+// target_run_uuid = '325546e6-3af5-4f3d-b890-5aacd9f9b1e7'
 
 winners = []
 // The `; null` just spares us a ton of printing
@@ -105,10 +108,10 @@ void printEdge(fr, e) {
 	*/
 
 	// Add one and multiply by three to make the line visible
-	edgeWidth = (1+(e['ns']/1000))*3
+	edgeWidth = (1+(e['ns']/1000))*4
 	// Add 30 to make the line visible <- This needs to be played with some more still.
 	// I'm not understanding the range of visibility?
-	transparency = ((e['nc']/1000)*255)+30
+	transparency = ((e['nc']*20)+30)
 	rounded = (int) Math.round(transparency);
 	if (rounded > 255) {
 		rounded = 255
@@ -117,29 +120,34 @@ void printEdge(fr, e) {
 	trans = Integer.toHexString(rounded).toUpperCase();
 	println("This is color: "+trans)
 	if (e['gos'] == "[:alternation :uniform-mutation]"){
-		// c = "palevioletred";
-		c = "#DB7093"+rounded;
+		// c = "black";
+		c = "#000000"+trans;
+		sty = "solid";
 	} else if (e['gos'] == ":alternation") {
-		// c = "orange";
-		c = "#FFA500"+rounded;
+		// c = "black";
+		c = "#000000"+trans;
+		sty = "dashed";
 	} else if (e['gos'] == ":uniform-mutation") {
 		// c = "orangered";
-		c = "#FF4500"+rounded;
+		c = "#FF4500"+trans;
+		sty = "solid";
 	} else if (e['gos'] == ":uniform-close-mutation") {
-		// c = "saddlebrown";
-		c = "#8B4513"+rounded;
+		// c = "orangered";
+		c = "#FF4500"+trans;
+		sty = "dashed";
 	} else {
 		// c = "lightgray";
-		c = "#808080"+rounded;
+		c = "red";
+		sty = "solid";
 	}
 	//c = "lightgray"
     // fr.println('"' + e['parent'] + '"' + " -> " + '"' + e['child'] + '"' + " [color=\"${c}\", penwidth=${edgeWidth}];")
-	fr.println('"' + e['parent'] + '"' + " -> " + '"' + e['child'] + '"' + " [color=\"${c}\", penwidth=${edgeWidth}];")
+	fr.println('"' + e['parent'] + '"' + " -> " + '"' + e['child'] + '"' + " [color=\"${c}\", penwidth=${edgeWidth}, style=\"${sty}\"];")
 }
 
 // Open the DOT file, print the DOT header info.
 // fr = new java.io.FileWriter("/Research/RSWN/recursive-variance-v3/data7_ancestors.dot")
-fr = new java.io.FileWriter("/Research/RSWN/lexicase/run0_ancestors_colored_edges.dot")
+fr = new java.io.FileWriter("/Research/RSWN/lexicase/run1_ancestors_colored_edges.dot")
 fr.println("digraph G {")
 
 // Generate nodes for all the generations
@@ -148,7 +156,7 @@ fr.println((0..maxGen).collect{ '"Gen ' + it + '"' }.join(" -> ") + " [style=inv
 
 // Set up the defaults for nodes and edges.
 fr.println('node[shape=point, width=0.15, height=0.15, fillcolor="white", penwidth=1, label=""];')
-fr.println('edge[arrowsize=0.5, color="grey", penwidth=1];')
+fr.println('edge[arrowsize=0.5, color="grey", penwidth=1, style="solid"];')
 
 // Process all the vertices
 anc.V().
@@ -162,8 +170,8 @@ anc.V().
 
 // Process all the edges
 anc.E().
-	as('e').outV().values('num_selections').as('ns').
-	select('e').outV().values('num_children').as('nc').
+	as('e').inV().values('num_selections').as('ns').
+	select('e').inV().values('num_ancestry_children').as('nc').
 	select('e').outV().values('uuid').as('parent').
 	select('e').inV().values('uuid').as('child').
 	select('e').inV().values('genetic_operators').as('gos').
