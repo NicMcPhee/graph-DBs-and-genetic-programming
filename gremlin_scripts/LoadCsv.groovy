@@ -24,9 +24,10 @@ def fastSplit(String s) {
 runUUID = java.util.UUID.randomUUID()
 
 
-graph = TitanFactory.open('./db.properties')
+graph = TitanFactory.open('./genome_db.properties')
 g = graph.traversal()
 
+/*
 mgmt = graph.openManagement()
 
 // Node properties
@@ -37,10 +38,10 @@ uuid = mgmt.makePropertyKey("uuid").dataType(String.class).make()
 generation = mgmt.makePropertyKey("generation").dataType(Integer.class).make()
 location = mgmt.makePropertyKey("location").dataType(Integer.class).make()
 genetic_operators = mgmt.makePropertyKey("genetic_operators").dataType(String.class).make()
-//plush_genome = mgmt.makePropertyKey("plush_genome").dataType(String.class).make()
+plush_genome = mgmt.makePropertyKey("plush_genome").dataType(String.class).make()
 total_error = mgmt.makePropertyKey("total_error").dataType(Float.class).make()
 is_random_replacement = mgmt.makePropertyKey("is_random_replacement").dataType(Boolean.class).make()
-//error_vector = mgmt.makePropertyKey("error_vector").dataType(Float.class).cardinality(Cardinality.LIST).make()
+error_vector = mgmt.makePropertyKey("error_vector").dataType(Float.class).cardinality(Cardinality.LIST).make()
 
 num_children = mgmt.makePropertyKey("num_children").dataType(Integer.class).make()
 num_selections = mgmt.makePropertyKey("num_selections").dataType(Integer.class).make()
@@ -57,16 +58,17 @@ parent_type = mgmt.makePropertyKey("parent_type").dataType(String.class).make()
 successfulIndex = mgmt.buildIndex("successfulIndex", Vertex.class).addKey(successful).indexOnly(run).buildCompositeIndex()
 uuidIndex = mgmt.buildIndex("uuidIndex",  Vertex.class).addKey(uuid).unique().buildCompositeIndex()
 generationTotalError = mgmt.buildIndex('generationTotalError', Vertex.class).addKey(generation).addKey(total_error).buildMixedIndex("search")
+selectionsIndex = mgmt.buildIndex('selectionsIndex', Vertex.class).addKey(num_children).addKey(num_selections).addKey(num_ancestry_children).buildMixedIndex("search")
 mgmt.commit()
 println("Done with setting keys.")
-
+*/
 start = System.currentTimeMillis()
 
 println("We're in the parse section!")
 // Adding all verticies to graph
 theCount = 0
-runFileName = "data7.csv.gz"
-nodeCSVzipped = "/Research/RSWN/recursive-variance-v3/" + runFileName
+runFileName = "data1.csv.gz"
+nodeCSVzipped = "/Research/RSWN/lexicase/" + runFileName
 
 fileStream = new FileInputStream(nodeCSVzipped)
 gzipStream = new GZIPInputStream(fileStream)
@@ -75,7 +77,7 @@ reader = new BufferedReader(inputReader)
 successful = false
 maxGen = 0
 while ((line = reader.readLine()) != null) {
-	if (theCount % 1000 == 0) {
+	if (theCount % 10 == 0) {
 	    println("Count = ${theCount}")
 	}
     if (theCount > 0) { 
@@ -83,19 +85,20 @@ while ((line = reader.readLine()) != null) {
 		// println fields
 		// This only makes sense if we're using is-random-replacement
 		// (and it's in location 9).
-		
+		/*
 		if (fields[9] == "") {
 			fields[9] = true
 		}
+		*/
 		
-		// errors = fields[10..-1].collect { it.toFloat() }
+		errors = fields[10..-1].collect { it.toFloat() }
 
-		if((theCount % 10000) == 0){
+		if((theCount % 1000) == 0){
 			println("Commiting at: "+theCount)
 			graph.tx().commit()
 		}
 	// Remember to change this to fields[9] when working with non autoconstuctive runs!
-		total_error = fields[8].toFloat()
+		total_error = fields[9].toFloat()
 		if (total_error == 0) {
 			successful = true;
 		}
@@ -103,11 +106,13 @@ while ((line = reader.readLine()) != null) {
 		if (gen > maxGen){
 			maxGen = gen;
 		}
-		newVertex = graph.addVertex(label, "individual", "run_uuid", runUUID, "uuid", fields[0], "generation", fields[1].toInteger(), 
-				"location", fields[2].toInteger(), "genetic_operators", fields[4], // "plush_genome", fields[7], 
-				"total_error", total_error, "is_random_replacement", fields[9].toBoolean())
-//				"total_error", total_error)
-		// errors.each { newVertex.property("error_vector", it) }
+		newVertex = graph.addVertex(label, "individual", "run_uuid", runUUID, 
+			    	"uuid", fields[0], 
+				"generation", fields[1].toInteger(), "location", fields[2].toInteger(), 
+				"genetic_operators", fields[4], "plush_genome", fields[8], 
+				// "total_error", total_error, "is_random_replacement", fields[9].toBoolean())
+				"total_error", total_error)
+		errors.each { newVertex.property("error_vector", it) }
 
 		if (fields[3].length() > 5) {
 			motherUuid = fields[3][4..39]
@@ -116,13 +121,13 @@ while ((line = reader.readLine()) != null) {
 			motherEdge = mother.addEdge('parent_of', newVertex)
 			// We commented out the properties because they're not meaningful
 			// for the non-autoconstructive runs.
-			 motherEdge.property("parent_type", "mother")
+			motherEdge.property("parent_type", "mother")
 
 			if (fields[3].length() > 48) {
 				fatherUuid = fields[3][45..-5]
 				father = g.V().has("uuid", fatherUuid).next()
 				fatherEdge = father.addEdge('parent_of', newVertex)
-				 fatherEdge.property("parent_type", "father")
+				fatherEdge.property("parent_type", "father")
 			}
 
 		}
