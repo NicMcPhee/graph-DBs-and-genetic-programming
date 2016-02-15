@@ -107,10 +107,10 @@ void printEdge(fr, e) {
 	}
 	*/
 
-	// Add one and multiply by three to make the line visible
+	// Add one and multiply by four to make the line visible
 	edgeWidth = (1+(e['ns']/1000))*4
-	// Add 30 to make the line visible <- This needs to be played with some more still.
-	// I'm not understanding the range of visibility?
+	// May want a var to track the max for 'ns' and 'nc'
+	// this could be used to make a more meaningfull transparency/width
 	transparency = ((e['nc']*20)+30)
 	rounded = (int) Math.round(transparency);
 	if (rounded > 255) {

@@ -588,3 +588,27 @@ To simplify working with the 4 run database I figured out what the 4 run UUIDs m
 
 
 scp  bebop:/Research/RSWN/lexicase/colored_output_run0.pdf .
+
+
+***********************************************************************************************************************************
+
+# 15 Feb
+
+* With error vector as vector and genome as string: 648901 ms
+  * 4.1G	single_genome_graph/
+  * 45M		single_genome_searchindex/
+
+* With error vector as vector:
+  * Assuming too slow to care.
+
+* With genome as string: 193037 ms
+  * 796M	single_genome_graph/
+  * 44M		single_genome_searchindex/
+
+* With error vector as string and genome as string: 210406 ms
+  * 869M	single_genome_graph/
+  * 45M		single_genome_searchindex/
+  * Seems to be the best option.
+
+
+
