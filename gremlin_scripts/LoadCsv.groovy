@@ -27,7 +27,7 @@ runUUID = java.util.UUID.randomUUID()
 graph = TitanFactory.open('./genome_db.properties')
 g = graph.traversal()
 
-/*
+
 mgmt = graph.openManagement()
 
 // Node properties
@@ -41,7 +41,8 @@ genetic_operators = mgmt.makePropertyKey("genetic_operators").dataType(String.cl
 plush_genome = mgmt.makePropertyKey("plush_genome").dataType(String.class).make()
 total_error = mgmt.makePropertyKey("total_error").dataType(Float.class).make()
 is_random_replacement = mgmt.makePropertyKey("is_random_replacement").dataType(Boolean.class).make()
-error_vector = mgmt.makePropertyKey("error_vector").dataType(Float.class).cardinality(Cardinality.LIST).make()
+error_vector = mgmt.makePropertyKey("error_vector").dataType(String.class).make()
+// error_vector = mgmt.makePropertyKey("error_vector").dataType(Float.class).cardinality(Cardinality.LIST).make()
 
 num_children = mgmt.makePropertyKey("num_children").dataType(Integer.class).make()
 num_selections = mgmt.makePropertyKey("num_selections").dataType(Integer.class).make()
@@ -61,7 +62,7 @@ generationTotalError = mgmt.buildIndex('generationTotalError', Vertex.class).add
 selectionsIndex = mgmt.buildIndex('selectionsIndex', Vertex.class).addKey(num_children).addKey(num_selections).addKey(num_ancestry_children).buildMixedIndex("search")
 mgmt.commit()
 println("Done with setting keys.")
-*/
+
 start = System.currentTimeMillis()
 
 println("We're in the parse section!")
@@ -91,7 +92,8 @@ while ((line = reader.readLine()) != null) {
 		}
 		*/
 		
-		errors = fields[10..-1].collect { it.toFloat() }
+		// errors = fields[10..-1].collect { it.toFloat() }
+		errors = fields[10..-1].join(",")
 
 		if((theCount % 1000) == 0){
 			println("Commiting at: "+theCount)
@@ -111,8 +113,8 @@ while ((line = reader.readLine()) != null) {
 				"generation", fields[1].toInteger(), "location", fields[2].toInteger(), 
 				"genetic_operators", fields[4], "plush_genome", fields[8], 
 				// "total_error", total_error, "is_random_replacement", fields[9].toBoolean())
-				"total_error", total_error)
-		errors.each { newVertex.property("error_vector", it) }
+				"total_error", total_error, "error_vector", errors)
+		// errors.each { newVertex.property("error_vector", it) }
 
 		if (fields[3].length() > 5) {
 			motherUuid = fields[3][4..39]
