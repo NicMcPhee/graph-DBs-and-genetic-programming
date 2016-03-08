@@ -4,7 +4,7 @@ import java.util.zip.GZIPInputStream
 
 // Based on an algorithm by maythesource.com:
 // http://stackoverflow.com/a/15905916
-def fastSplit(String s) {
+fastSplit = { s ->
 	words = []
 	boolean notInsideComma = true
 	int start = 0
@@ -18,7 +18,7 @@ def fastSplit(String s) {
 		}
 	}
 	words += [s.substring(start)]
-	return words 
+	return words
 }
 
 def createPropertiesAndKeys(graph) {
@@ -59,6 +59,111 @@ def createPropertiesAndKeys(graph) {
 	println("Done with setting keys.")
 }
 
+parseCsvFile = { graph, zippedCsvFile, runUUID ->
+	start = System.currentTimeMillis()
+	g = graph.traversal()
+
+	println("We're in the parse section!")
+
+	fileStream = new FileInputStream(zippedCsvFile)
+	gzipStream = new GZIPInputStream(fileStream)
+	inputReader = new InputStreamReader(gzipStream)
+	reader = new BufferedReader(inputReader)
+
+	theCount = 0 // How many rows have we read?
+	successful = false // Was this run successful (i.e., zero error?)
+	maxGen = 0 // The last (& largest) generation number in this run
+	while ((line = reader.readLine()) != null) {
+		if (theCount % 1000 == 0) {
+			println("Count = ${theCount}")
+		}
+		// The first line is the headers, which we currently ignore. We really
+		// should read them and use them to drive a lot of the stuff that we end
+		// up fiddling by hand below.
+		if (theCount > 0) {
+			fields = this.fastSplit(line)
+			// This only makes sense if we're using is-random-replacement
+			// (and it's in location 9).
+			/*
+			if (fields[9] == "") {
+			fields[9] = true
+			}
+			*/
+
+			error_vector_values = fields[10..-1].collect { it.toFloat() }
+			errors_with_indices = error_vector_values.withIndex() // [[a, 0], [b, 1], [c, 2], ...]
+			num_zero_errors_even_indices = errors_with_indices.findAll { it[1] % 2 == 0 && it[0] == 0 }.size
+			num_zero_errors_odd_indices = errors_with_indices.findAll { it[1] % 2 == 1 && it[0] == 0 }.size
+			// Evens are printing tests
+			percent_zeros_even_indices = num_zero_errors_even_indices * 1.0 / (error_vector_values.size / 2)
+			// Odds are returning tests
+			percent_zeros_odd_indices = num_zero_errors_odd_indices * 1.0 / (error_vector_values.size / 2)
+
+			errors = fields[10..-1].join(",")
+
+			if((theCount % 1000) == 0){
+				println("Commiting at: "+theCount)
+				graph.tx().commit()
+			}
+			// Remember to change this to fields[9] when working with non autoconstuctive runs!
+			total_error = fields[9].toFloat()
+			if (total_error == 0) {
+				successful = true;
+			}
+			gen = fields[1].toInteger()
+			if (gen > maxGen){
+				maxGen = gen;
+			}
+			newVertex = graph.addVertex(label, "individual", "run_uuid", runUUID,
+			"uuid", fields[0],
+			"generation", fields[1].toInteger(), "location", fields[2].toInteger(),
+			"genetic_operators", fields[4], "plush_genome", fields[8],
+			// "total_error", total_error, "is_random_replacement", fields[9].toBoolean())
+			"total_error", total_error, "error_vector", errors,
+			"percent_zero_errors_evens", percent_zeros_even_indices,
+			"percent_zero_errors_odds", percent_zeros_odd_indices)
+			// errors.each { newVertex.property("error_vector", it) }
+
+			if (fields[3].length() > 5) {
+				motherUuid = fields[3][4..39]
+				// println "<" + motherUuid + "> ::: <" + fatherUuid + ">"
+				mother = g.V().has("uuid", motherUuid).next()
+				motherEdge = mother.addEdge('parent_of', newVertex)
+				// We commented out the properties because they're not meaningful
+				// for the non-autoconstructive runs.
+				motherEdge.property("parent_type", "mother")
+
+				if (fields[3].length() > 48) {
+					fatherUuid = fields[3][45..-5]
+					father = g.V().has("uuid", fatherUuid).next()
+					fatherEdge = father.addEdge('parent_of', newVertex)
+					fatherEdge.property("parent_type", "father")
+				}
+
+			}
+		}
+		++theCount
+	}
+	reader.close()
+	graph.tx().commit()
+
+	return [maxGen, successful]
+}
+
+def addNumSelectionsAndChildren(graph, maxGen) {
+	g = graph.traversal()
+
+	(0..maxGen).each { gen -> g.V().has('generation', gen).sideEffect { num_selections = it.get().edges(Direction.OUT).size(); it.get().property('num_selections', num_selections) }.iterate(); graph.tx().commit(); println gen }
+
+	(0..maxGen).each { gen -> g.V().has('generation', gen).sideEffect { edges = it.get().edges(Direction.OUT); num_children = edges.collect { it.inVertex() }.unique().size(); it.get().property('num_children', num_children) }.iterate(); graph.tx().commit(); println gen }
+	graph.tx().commit()
+}
+
+def addRunNode(graph, runUUID, runFileName, successful, maxGen) {
+	runVertex = graph.addVertex(label, "run", "run_uuid", runUUID, "data_file", runFileName, "successful", successful, "max_generation", maxGen)
+	graph.tx().commit()
+}
+
 runUUID = java.util.UUID.randomUUID()
 
 graph = TitanFactory.open('./genome_db.properties')
@@ -66,99 +171,11 @@ g = graph.traversal()
 
 createPropertiesAndKeys(graph)
 
-start = System.currentTimeMillis()
-
-println("We're in the parse section!")
-// Adding all verticies to graph
-theCount = 0
-runFileName = "data1.csv.gz"
+runFileName = "data0.csv.gz"
 nodeCSVzipped = "/Research/RSWN/lexicase/" + runFileName
 
-fileStream = new FileInputStream(nodeCSVzipped)
-gzipStream = new GZIPInputStream(fileStream)
-inputReader = new InputStreamReader(gzipStream)
-reader = new BufferedReader(inputReader)
-successful = false
-maxGen = 0
-while ((line = reader.readLine()) != null) {
-	if (theCount % 1000 == 0) {
-	    println("Count = ${theCount}")
-	}
-    if (theCount > 0) { 
-		fields = fastSplit(line)
-		// println fields
-		// This only makes sense if we're using is-random-replacement
-		// (and it's in location 9).
-		/*
-		if (fields[9] == "") {
-			fields[9] = true
-		}
-		*/
-		
-		error_vector_values = fields[10..-1].collect { it.toFloat() }
-		errors_with_indices = error_vector_values.withIndex() // [[a, 0], [b, 1], [c, 2], ...]
-		num_zero_errors_even_indices = errors_with_indices.findAll { it[1] % 2 == 0 && it[0] == 0 }.size
-		num_zero_errors_odd_indices = errors_with_indices.findAll { it[1] % 2 == 1 && it[0] == 0 }.size
-		// Evens are printing tests
-		percent_zeros_even_indices = num_zero_errors_even_indices * 1.0 / (error_vector_values.size / 2)
-		// Odds are returning tests
-		percent_zeros_odd_indices = num_zero_errors_odd_indices * 1.0 / (error_vector_values.size / 2)
-
-		errors = fields[10..-1].join(",")
-
-		if((theCount % 1000) == 0){
-			println("Commiting at: "+theCount)
-			graph.tx().commit()
-		}
-	// Remember to change this to fields[9] when working with non autoconstuctive runs!
-		total_error = fields[9].toFloat()
-		if (total_error == 0) {
-			successful = true;
-		}
-		gen = fields[1].toInteger()
-		if (gen > maxGen){
-			maxGen = gen;
-		}
-		newVertex = graph.addVertex(label, "individual", "run_uuid", runUUID, 
-			    	"uuid", fields[0], 
-				"generation", fields[1].toInteger(), "location", fields[2].toInteger(), 
-				"genetic_operators", fields[4], "plush_genome", fields[8], 
-				// "total_error", total_error, "is_random_replacement", fields[9].toBoolean())
-				"total_error", total_error, "error_vector", errors,
-				"percent_zero_errors_evens", percent_zeros_even_indices,
-				"percent_zero_errors_odds", percent_zeros_odd_indices)
-		// errors.each { newVertex.property("error_vector", it) }
-
-		if (fields[3].length() > 5) {
-			motherUuid = fields[3][4..39]
-			// println "<" + motherUuid + "> ::: <" + fatherUuid + ">"
-			mother = g.V().has("uuid", motherUuid).next()
-			motherEdge = mother.addEdge('parent_of', newVertex)
-			// We commented out the properties because they're not meaningful
-			// for the non-autoconstructive runs.
-			motherEdge.property("parent_type", "mother")
-
-			if (fields[3].length() > 48) {
-				fatherUuid = fields[3][45..-5]
-				father = g.V().has("uuid", fatherUuid).next()
-				fatherEdge = father.addEdge('parent_of', newVertex)
-				fatherEdge.property("parent_type", "father")
-			}
-
-		}
-	}
-	++theCount
-}
-reader.close()
-graph.tx().commit()
-
-(0..maxGen).each { gen -> g.V().has('generation', gen).sideEffect { num_selections = it.get().edges(Direction.OUT).size(); it.get().property('num_selections', num_selections) }.iterate(); graph.tx().commit(); println gen }
-
-(0..maxGen).each { gen -> g.V().has('generation', gen).sideEffect { edges = it.get().edges(Direction.OUT); num_children = edges.collect { it.inVertex() }.unique().size(); it.get().property('num_children', num_children) }.iterate(); graph.tx().commit(); println gen }
-
-runVertex = graph.addVertex(label, "run", "run_uuid", runUUID, "data_file", runFileName, "successful", successful, "max_generation", maxGen)
-
-graph.tx().commit()
+(maxGen, successful) = parseCsvFile(graph, nodeCSVzipped, runUUID)
+addNumSelectionsAndChildren(graph, maxGen)
+addRunNode(graph, runUUID, runFileName, successful, maxGen)
 
 println "Loading took (ms): " + (System.currentTimeMillis() - start)
-
