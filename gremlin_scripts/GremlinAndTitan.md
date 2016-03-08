@@ -584,12 +584,6 @@ To simplify working with the 4 run database I figured out what the 4 run UUIDs m
 * 7a7184e1-2a5c-4b8a-9317-f816155ed22a: run2, which is unsuccessful and doesn't look like it's ever getting anywhere. It's best total error at generation 300 is 215, and there's almost no structure in the run after the initial settling out.
 * cce34700-5c32-4fe4-8388-31dded53381b: run3, which is unsuccessful but looks quite promising. The best total error at the end was 45, and there seems to be "action", so it's possible that some generations might have led to a solution.
 
-
-
-
-scp  bebop:/Research/RSWN/lexicase/colored_output_run0.pdf .
-
-
 ***********************************************************************************************************************************
 
 # 15 Feb
@@ -609,6 +603,24 @@ scp  bebop:/Research/RSWN/lexicase/colored_output_run0.pdf .
   * 869M	single_genome_graph/
   * 45M		single_genome_searchindex/
   * Seems to be the best option.
+
+***********************************************************************************************************************************
+
+# 1 March
+
+* Organize `LoadCSV.groovy` into individual functions.
+* Delete old loading groovy files that are no longer being used.
+
+* Maybe have multiple `WinnerAncestors` for:
+  * One for autoconstruction runs
+  * Another for the non-autoconstruction runs
+  * Something to factor in failed runs (whether they are or not), this should probably be built into the above functions.
+* ALternatively, organize `WinnerAncestors.groovy` into run-specific functions (for autoconstruction and non)
+
+* Figure out which test cases are which to apply the dual coloring
+
+
+
 
 
 

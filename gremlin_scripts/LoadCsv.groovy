@@ -21,47 +21,50 @@ def fastSplit(String s) {
 	return words 
 }
 
-runUUID = java.util.UUID.randomUUID()
+def createPropertiesAndKeys(graph) {
+	mgmt = graph.openManagement()
 
+	// Node properties
+	successfulProperty = mgmt.makePropertyKey("successful").dataType(Boolean.class).make()
+
+	run_uuid = mgmt.makePropertyKey("run_uuid").dataType(String.class).make()
+	uuid = mgmt.makePropertyKey("uuid").dataType(String.class).make()
+	generation = mgmt.makePropertyKey("generation").dataType(Integer.class).make()
+	location = mgmt.makePropertyKey("location").dataType(Integer.class).make()
+	genetic_operators = mgmt.makePropertyKey("genetic_operators").dataType(String.class).make()
+	plush_genome = mgmt.makePropertyKey("plush_genome").dataType(String.class).make()
+	total_error = mgmt.makePropertyKey("total_error").dataType(Float.class).make()
+	is_random_replacement = mgmt.makePropertyKey("is_random_replacement").dataType(Boolean.class).make()
+	error_vector = mgmt.makePropertyKey("error_vector").dataType(String.class).make()
+	percent_zero_errors_even_indices = mgmt.makePropertyKey("percent_zero_errors_evens").dataType(Float.class).make()
+	percent_zero_errors_odd_indices = mgmt.makePropertyKey("percent_zero_errors_odds").dataType(Float.class).make()
+
+	num_children = mgmt.makePropertyKey("num_children").dataType(Integer.class).make()
+	num_selections = mgmt.makePropertyKey("num_selections").dataType(Integer.class).make()
+	num_ancestry_children = mgmt.makePropertyKey("num_ancestry_children").dataType(Integer.class).make()
+
+	// Vertex Labels
+	individual = mgmt.makeVertexLabel('individual').make()
+	run = mgmt.makeVertexLabel('run').make()
+
+	// Edge properties
+	parent_type = mgmt.makePropertyKey("parent_type").dataType(String.class).make()
+
+	// Indexing
+	successfulIndex = mgmt.buildIndex("successfulIndex", Vertex.class).addKey(successfulProperty).indexOnly(run).buildCompositeIndex()
+	uuidIndex = mgmt.buildIndex("uuidIndex",  Vertex.class).addKey(uuid).unique().buildCompositeIndex()
+	generationTotalError = mgmt.buildIndex('generationTotalError', Vertex.class).addKey(generation).addKey(total_error).buildMixedIndex("search")
+	selectionsIndex = mgmt.buildIndex('selectionsIndex', Vertex.class).addKey(num_children).addKey(num_selections).addKey(num_ancestry_children).buildMixedIndex("search")
+	mgmt.commit()
+	println("Done with setting keys.")
+}
+
+runUUID = java.util.UUID.randomUUID()
 
 graph = TitanFactory.open('./genome_db.properties')
 g = graph.traversal()
 
-
-mgmt = graph.openManagement()
-
-// Node properties
-successful = mgmt.makePropertyKey("successful").dataType(Boolean.class).make()
-
-run_uuid = mgmt.makePropertyKey("run_uuid").dataType(String.class).make()
-uuid = mgmt.makePropertyKey("uuid").dataType(String.class).make()
-generation = mgmt.makePropertyKey("generation").dataType(Integer.class).make()
-location = mgmt.makePropertyKey("location").dataType(Integer.class).make()
-genetic_operators = mgmt.makePropertyKey("genetic_operators").dataType(String.class).make()
-plush_genome = mgmt.makePropertyKey("plush_genome").dataType(String.class).make()
-total_error = mgmt.makePropertyKey("total_error").dataType(Float.class).make()
-is_random_replacement = mgmt.makePropertyKey("is_random_replacement").dataType(Boolean.class).make()
-error_vector = mgmt.makePropertyKey("error_vector").dataType(String.class).make()
-// error_vector = mgmt.makePropertyKey("error_vector").dataType(Float.class).cardinality(Cardinality.LIST).make()
-
-num_children = mgmt.makePropertyKey("num_children").dataType(Integer.class).make()
-num_selections = mgmt.makePropertyKey("num_selections").dataType(Integer.class).make()
-num_ancestry_children = mgmt.makePropertyKey("num_ancestry_children").dataType(Integer.class).make()
-
-// Vertex Labels
-individual = mgmt.makeVertexLabel('individual').make()
-run = mgmt.makeVertexLabel('run').make()
-
-// Edge properties
-parent_type = mgmt.makePropertyKey("parent_type").dataType(String.class).make()
-
-// Indexing
-successfulIndex = mgmt.buildIndex("successfulIndex", Vertex.class).addKey(successful).indexOnly(run).buildCompositeIndex()
-uuidIndex = mgmt.buildIndex("uuidIndex",  Vertex.class).addKey(uuid).unique().buildCompositeIndex()
-generationTotalError = mgmt.buildIndex('generationTotalError', Vertex.class).addKey(generation).addKey(total_error).buildMixedIndex("search")
-selectionsIndex = mgmt.buildIndex('selectionsIndex', Vertex.class).addKey(num_children).addKey(num_selections).addKey(num_ancestry_children).buildMixedIndex("search")
-mgmt.commit()
-println("Done with setting keys.")
+createPropertiesAndKeys(graph)
 
 start = System.currentTimeMillis()
 
@@ -78,7 +81,7 @@ reader = new BufferedReader(inputReader)
 successful = false
 maxGen = 0
 while ((line = reader.readLine()) != null) {
-	if (theCount % 10 == 0) {
+	if (theCount % 1000 == 0) {
 	    println("Count = ${theCount}")
 	}
     if (theCount > 0) { 
@@ -92,7 +95,15 @@ while ((line = reader.readLine()) != null) {
 		}
 		*/
 		
-		// errors = fields[10..-1].collect { it.toFloat() }
+		error_vector_values = fields[10..-1].collect { it.toFloat() }
+		errors_with_indices = error_vector_values.withIndex() // [[a, 0], [b, 1], [c, 2], ...]
+		num_zero_errors_even_indices = errors_with_indices.findAll { it[1] % 2 == 0 && it[0] == 0 }.size
+		num_zero_errors_odd_indices = errors_with_indices.findAll { it[1] % 2 == 1 && it[0] == 0 }.size
+		// Evens are printing tests
+		percent_zeros_even_indices = num_zero_errors_even_indices * 1.0 / (error_vector_values.size / 2)
+		// Odds are returning tests
+		percent_zeros_odd_indices = num_zero_errors_odd_indices * 1.0 / (error_vector_values.size / 2)
+
 		errors = fields[10..-1].join(",")
 
 		if((theCount % 1000) == 0){
@@ -113,7 +124,9 @@ while ((line = reader.readLine()) != null) {
 				"generation", fields[1].toInteger(), "location", fields[2].toInteger(), 
 				"genetic_operators", fields[4], "plush_genome", fields[8], 
 				// "total_error", total_error, "is_random_replacement", fields[9].toBoolean())
-				"total_error", total_error, "error_vector", errors)
+				"total_error", total_error, "error_vector", errors,
+				"percent_zero_errors_evens", percent_zeros_even_indices,
+				"percent_zero_errors_odds", percent_zeros_odd_indices)
 		// errors.each { newVertex.property("error_vector", it) }
 
 		if (fields[3].length() > 5) {

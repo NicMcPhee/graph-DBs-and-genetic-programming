@@ -2,7 +2,7 @@
 // graph loaded.
 import java.io.*
 
-graph = TitanFactory.open('rswn_db.properties')
+graph = TitanFactory.open('genome_db.properties')
 g = graph.traversal()
 
 def all_ancestors(starters) {
@@ -42,11 +42,8 @@ anc = ancG.traversal()
 // in Groovy lists, and then use `inject` and `unfold` to insert them into a
 // pipeline, then everything works.
 
-// target_run_uuid = '7a7184e1-2a5c-4b8a-9317-f816155ed22a'
-// Run 1
-target_run_uuid = '238ccc3a-1567-4196-95d5-2f5cd38b8602'
 // Run 0
-// target_run_uuid = '325546e6-3af5-4f3d-b890-5aacd9f9b1e7'
+target_run_uuid = '2c040008-1ef9-4019-90c3-6f4a171f3147'
 
 winners = []
 // The `; null` just spares us a ton of printing
@@ -82,8 +79,12 @@ void printNode(fr, maxError, n) {
 	 if (total_error > error_ceiling) {
 		total_error = error_ceiling
 	 }
-     hue = 1.0/3 + (2.0/3)*Math.log(total_error+1)/Math.log(error_ceiling+1)
-     color = "\"${hue} 1 1\""
+
+     // hue = 1.0/3 + (2.0/3)*Math.log(total_error+1)/Math.log(error_ceiling+1)
+     hue = 1.0/3 + (2.0/3) * (1 - n['pze_even'])
+     otherhue = 1.0/3 + (2.0/3) * (1 - n['pze_odd'])
+	 idk = "${hue} 1 1;0.5:${otherhue} 1 1"
+     color = "\"${idk}\""
      
      name = '"' + n['id'] + '"'
      
@@ -116,9 +117,8 @@ void printEdge(fr, e) {
 	if (rounded > 255) {
 		rounded = 255
 	} 
-	println("This is rounded: "+rounded)
+
 	trans = Integer.toHexString(rounded).toUpperCase();
-	println("This is color: "+trans)
 	if (e['gos'] == "[:alternation :uniform-mutation]"){
 		// c = "black";
 		c = "#000000"+trans;
@@ -140,14 +140,12 @@ void printEdge(fr, e) {
 		c = "red";
 		sty = "solid";
 	}
-	//c = "lightgray"
-    // fr.println('"' + e['parent'] + '"' + " -> " + '"' + e['child'] + '"' + " [color=\"${c}\", penwidth=${edgeWidth}];")
 	fr.println('"' + e['parent'] + '"' + " -> " + '"' + e['child'] + '"' + " [color=\"${c}\", penwidth=${edgeWidth}, style=\"${sty}\"];")
 }
 
 // Open the DOT file, print the DOT header info.
 // fr = new java.io.FileWriter("/Research/RSWN/recursive-variance-v3/data7_ancestors.dot")
-fr = new java.io.FileWriter("/Research/RSWN/lexicase/run1_ancestors_colored_edges.dot")
+fr = new java.io.FileWriter("/Research/RSWN/lexicase/run1_half_and_half_node.dot")
 fr.println("digraph G {")
 
 // Generate nodes for all the generations
@@ -164,7 +162,9 @@ anc.V().
 	select('v').values('num_selections').as('ns').
 	select('v').values('total_error').as('te').
 	select('v').values('num_ancestry_children').as('nac').
-	select('id', 'te', 'ns', 'nac').
+	select('v').values('percent_zero_errors_evens').as('pze_even').
+	select('v').values('percent_zero_errors_odds').as('pze_odd').
+	select('id', 'te', 'ns', 'nac', 'pze_even', 'pze_odd').
 	sideEffect{ printNode(fr, maxError, it.get()) }.
 	iterate(); null
 
