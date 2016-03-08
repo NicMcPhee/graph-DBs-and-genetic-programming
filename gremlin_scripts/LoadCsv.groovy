@@ -21,7 +21,7 @@ fastSplit = { s ->
 	return words
 }
 
-def createPropertiesAndKeys(graph) {
+createPropertiesAndKeys = { graph ->
 	mgmt = graph.openManagement()
 
 	// Node properties
@@ -150,7 +150,7 @@ parseCsvFile = { graph, zippedCsvFile, runUUID ->
 	return [maxGen, successful]
 }
 
-def addNumSelectionsAndChildren(graph, maxGen) {
+addNumSelectionsAndChildren = { graph, maxGen ->
 	g = graph.traversal()
 
 	(0..maxGen).each { gen -> g.V().has('generation', gen).sideEffect { num_selections = it.get().edges(Direction.OUT).size(); it.get().property('num_selections', num_selections) }.iterate(); graph.tx().commit(); println gen }
@@ -159,7 +159,7 @@ def addNumSelectionsAndChildren(graph, maxGen) {
 	graph.tx().commit()
 }
 
-def addRunNode(graph, runUUID, runFileName, successful, maxGen) {
+addRunNode = { graph, runUUID, runFileName, successful, maxGen ->
 	runVertex = graph.addVertex(label, "run", "run_uuid", runUUID, "data_file", runFileName, "successful", successful, "max_generation", maxGen)
 	graph.tx().commit()
 }
