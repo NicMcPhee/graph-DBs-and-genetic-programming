@@ -1,6 +1,8 @@
 // A comment here for coloring to show in file w/ gedit.
 import java.io.*
 import java.util.zip.GZIPInputStream
+import java.nio.file.Path
+import java.nio.file.FileSystems
 
 // Based on an algorithm by maythesource.com:
 // http://stackoverflow.com/a/15905916
@@ -60,7 +62,6 @@ createPropertiesAndKeys = { graph ->
 }
 
 parseCsvFile = { graph, zippedCsvFile, runUUID ->
-	start = System.currentTimeMillis()
 	g = graph.traversal()
 
 	println("We're in the parse section!")
@@ -146,7 +147,6 @@ parseCsvFile = { graph, zippedCsvFile, runUUID ->
 	}
 	reader.close()
 	graph.tx().commit()
-	println "Loading took (ms): " + (System.currentTimeMillis() - start)
 
 	return [maxGen, successful]
 }
@@ -177,21 +177,35 @@ addRunNode = { graph, runUUID, runFileName, successful, maxGen ->
 	graph.tx().commit()
 }
 
-runUUID = java.util.UUID.randomUUID()
+loadCsv = { propertiesFileName, csvFilePath ->
+	start = System.currentTimeMillis()
 
-graph = TitanFactory.open('./genome_db.properties')
-g = graph.traversal()
+	runUUID = java.util.UUID.randomUUID()
 
-createPropertiesAndKeys(graph)
+	graph = TitanFactory.open(propertiesFileName)
 
-runFileName = "data0.csv.gz"
-nodeCSVzipped = "/Research/RSWN/lexicase/" + runFileName
+	createPropertiesAndKeys(graph)
 
-(maxGen, successful) = parseCsvFile(graph, nodeCSVzipped, runUUID)
-addNumSelections(graph, maxGen)
-addNumChildren(graph, maxGen)
-// If we put this before addNumSelections, etc., can we pull
-// maxGen out of the run node and not need to pass it as an
-// argument to those functions?
-addRunNode(graph, runUUID, runFileName, successful, maxGen)
+	path = FileSystems.getDefault().getPath(csvFilePath)
+	runFileName = path.getFileName().toString()
+	
+	(maxGen, successful) = parseCsvFile(graph, csvFilePath, runUUID)
+	addNumSelections(graph, maxGen)
+	addNumChildren(graph, maxGen)
+	// If we put this before addNumSelections, etc., can we pull
+	// maxGen out of the run node and not need to pass it as an
+	// argument to those functions?
+	addRunNode(graph, runUUID, runFileName, successful, maxGen)
 
+	println "Loading took (ms): " + (System.currentTimeMillis() - start)
+
+	return graph
+}
+
+println("The necessary functions are now loaded.")
+
+println("To load a CSV file use a call like:\n\
+\tgraph = loadCsv('genome_db.properties', '/Research/RSWN/lexicase/data0.csv.gz')\n\
+\tg = graph.traversal()\n\
+where you replace 'genome_db.properties' with the name of your properties file\n\
+and '/Research/RSWN/lexicase/data0.csv.gz' with the path to your compressed CSV file.")
