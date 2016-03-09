@@ -146,17 +146,30 @@ parseCsvFile = { graph, zippedCsvFile, runUUID ->
 	}
 	reader.close()
 	graph.tx().commit()
+	println "Loading took (ms): " + (System.currentTimeMillis() - start)
 
 	return [maxGen, successful]
 }
 
-addNumSelectionsAndChildren = { graph, maxGen ->
+addNumSelections = { graph, maxGen ->
 	g = graph.traversal()
 
-	(0..maxGen).each { gen -> g.V().has('generation', gen).sideEffect { num_selections = it.get().edges(Direction.OUT).size(); it.get().property('num_selections', num_selections) }.iterate(); graph.tx().commit(); println gen }
+	(0..maxGen).each { gen -> g.V().has('generation', gen).sideEffect { 
+			       num_selections = it.get().edges(Direction.OUT).size(); 
+			       it.get().property('num_selections', num_selections) }.iterate(); 
+			   graph.tx().commit(); 
+			   println gen }
+}
 
-	(0..maxGen).each { gen -> g.V().has('generation', gen).sideEffect { edges = it.get().edges(Direction.OUT); num_children = edges.collect { it.inVertex() }.unique().size(); it.get().property('num_children', num_children) }.iterate(); graph.tx().commit(); println gen }
-	graph.tx().commit()
+addNumChildren = { graph, maxGen ->
+	g = graph.traversal()
+
+	(0..maxGen).each { gen -> g.V().has('generation', gen).sideEffect { 
+			       edges = it.get().edges(Direction.OUT); 
+			       num_children = edges.collect { it.inVertex() }.unique().size(); 
+			       it.get().property('num_children', num_children) }.iterate(); 
+			   graph.tx().commit(); 
+			   println gen }
 }
 
 addRunNode = { graph, runUUID, runFileName, successful, maxGen ->
@@ -175,7 +188,10 @@ runFileName = "data0.csv.gz"
 nodeCSVzipped = "/Research/RSWN/lexicase/" + runFileName
 
 (maxGen, successful) = parseCsvFile(graph, nodeCSVzipped, runUUID)
-addNumSelectionsAndChildren(graph, maxGen)
+addNumSelections(graph, maxGen)
+addNumChildren(graph, maxGen)
+// If we put this before addNumSelections, etc., can we pull
+// maxGen out of the run node and not need to pass it as an
+// argument to those functions?
 addRunNode(graph, runUUID, runFileName, successful, maxGen)
 
-println "Loading took (ms): " + (System.currentTimeMillis() - start)
