@@ -2,8 +2,8 @@
 // graph loaded.
 import java.io.*
 
-graph = TitanFactory.open('genome_db.properties')
-g = graph.traversal()
+// graph = TitanFactory.open('genome_db.properties')
+// g = graph.traversal()
 
 def all_ancestors(starters) {
     result = starters
@@ -43,7 +43,7 @@ anc = ancG.traversal()
 // pipeline, then everything works.
 
 // Run 0
-target_run_uuid = '2c040008-1ef9-4019-90c3-6f4a171f3147'
+target_run_uuid = '7b389fd3-c73f-45bf-89b3-fe2c4bc920e5'
 
 winners = []
 // The `; null` just spares us a ton of printing
@@ -57,7 +57,8 @@ g.V().has('generation', 300).has('run_uuid', target_run_uuid).fill(gen300); null
 // The `unfold()` is necessary to convert the two big lists (which is how
 // `inject()` adds `winners` and `gen300` to the pipeline) into a sequence
 // of their contents.
-ancG = inject(winners).inject(gen300).unfold().repeat(__.inE().subgraph('sg').outV().dedup()).times(977).cap('sg').next()
+// ancG = inject(winners).inject(gen300).unfold().repeat(__.inE().subgraph('sg').outV().dedup()).times(977).cap('sg').next()
+ancG = inject(winners).inject(gen300).unfold().repeat(__.inE().has('DL_dist', lt(900)).subgraph('sg').outV().dedup()).times(977).cap('sg').next()
 anc = ancG.traversal()
 
 maxGen = anc.V().values('generation').max().next()
@@ -109,14 +110,23 @@ void printEdge(fr, e) {
 	*/
 
 	// Add one and multiply by four to make the line visible
-	edgeWidth = (1+(e['ns']/1000))*4
+	// edgeWidth = (1+(e['ns']/1000))*4
+
+	edgeWidth = (1 - e['DL_dist']/1000.0)*5
+	if (edgeWidth <= 0.5) { edgeWidth = 0.5 }
+
+	/*
 	// May want a var to track the max for 'ns' and 'nc'
 	// this could be used to make a more meaningfull transparency/width
 	transparency = ((e['nc']*20)+30)
 	rounded = (int) Math.round(transparency);
 	if (rounded > 255) {
 		rounded = 255
-	} 
+	}
+	*/
+
+	transparency = (edgeWidth/5) * 255
+	rounded = (int) Math.round(transparency)
 
 	trans = Integer.toHexString(rounded).toUpperCase();
 	if (e['gos'] == "[:alternation :uniform-mutation]"){
@@ -145,7 +155,7 @@ void printEdge(fr, e) {
 
 // Open the DOT file, print the DOT header info.
 // fr = new java.io.FileWriter("/Research/RSWN/recursive-variance-v3/data7_ancestors.dot")
-fr = new java.io.FileWriter("/Research/RSWN/lexicase/run1_half_and_half_node.dot")
+fr = new java.io.FileWriter("/Research/RSWN/lexicase/run1_DL_dist.dot")
 fr.println("digraph G {")
 
 // Generate nodes for all the generations
@@ -175,8 +185,9 @@ anc.E().
 	select('e').outV().values('uuid').as('parent').
 	select('e').inV().values('uuid').as('child').
 	select('e').inV().values('genetic_operators').as('gos').
+	select('e').values('DL_dist').as('DL_dist').
 	// select('e').values('parent_type').as('type').
-	select('parent', 'child', 'gos', 'ns', 'nc'). // , 'type').
+	select('parent', 'child', 'gos', 'ns', 'nc', 'DL_dist'). // , 'type').
 	sideEffect{ printEdge(fr, it.get()) }.
 	iterate(); null
 
