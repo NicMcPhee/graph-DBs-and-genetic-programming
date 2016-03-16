@@ -4,6 +4,8 @@ import java.util.zip.GZIPInputStream
 import java.nio.file.Path
 import java.nio.file.FileSystems
 
+import org.codehaus.groovy.runtime.MethodRankHelper
+
 // Based on an algorithm by maythesource.com:
 // http://stackoverflow.com/a/15905916
 fastSplit = { s ->
@@ -51,6 +53,7 @@ createPropertiesAndKeys = { graph ->
 
 	// Edge properties
 	parent_type = mgmt.makePropertyKey("parent_type").dataType(String.class).make()
+	LD_dist_prop = mgmt.makePropertyKey("LD_dist").dataType(Integer.class).make()
 
 	// Indexing
 	successfulIndex = mgmt.buildIndex("successfulIndex", Vertex.class).addKey(successfulProperty).indexOnly(run).buildCompositeIndex()
@@ -172,6 +175,34 @@ addNumChildren = { graph, maxGen ->
 			   println gen }
 }
 
+genome_items = { node ->
+    genome = node.value('plush_genome')
+    genome.
+        findAll(/\{:instruction (.+?), :close ([0-9]+)\}/).
+        collect({(it =~ /\{:instruction (.+?), :close ([0-9]+)\}/)[0][1..-1]}).
+        flatten() as Object[]
+}
+
+addLevenshteinDistances = { graph, maxGen ->
+	g = graph.traversal()
+
+	(0..maxGen).each { gen ->
+	    g.V().has('generation', gen).sideEffect { node_traverser ->
+	    	node = node_traverser.get()
+	        items = genome_items(node)
+		child_edges = node.edges(Direction.OUT)
+		child_edges.each { child_edge ->
+	           child = child_edge.inVertex()
+		   child_items = genome_items(child)
+		   dist = MethodRankHelper.damerauLevenshteinDistance(items, child_items)
+		   child_edge.property('DL_dist', dist)
+		}
+	    }.iterate()
+	    graph.tx().commit()
+	    println gen
+	}
+}
+
 addRunNode = { graph, runUUID, runFileName, successful, maxGen ->
 	runVertex = graph.addVertex(label, "run", "run_uuid", runUUID, "data_file", runFileName, "successful", successful, "max_generation", maxGen)
 	graph.tx().commit()
@@ -192,6 +223,9 @@ loadCsv = { propertiesFileName, csvFilePath ->
 	(maxGen, successful) = parseCsvFile(graph, csvFilePath, runUUID)
 	addNumSelections(graph, maxGen)
 	addNumChildren(graph, maxGen)
+
+	addLevenshteinDistances(graph, maxGen)
+
 	// If we put this before addNumSelections, etc., can we pull
 	// maxGen out of the run node and not need to pass it as an
 	// argument to those functions?
