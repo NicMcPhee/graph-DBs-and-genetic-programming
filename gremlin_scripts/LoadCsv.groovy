@@ -42,6 +42,9 @@ createPropertiesAndKeys = { graph ->
 	error_vector = mgmt.makePropertyKey("error_vector").dataType(String.class).make()
 	percent_zero_errors_even_indices = mgmt.makePropertyKey("percent_zero_errors_evens").dataType(Float.class).make()
 	percent_zero_errors_odd_indices = mgmt.makePropertyKey("percent_zero_errors_odds").dataType(Float.class).make()
+	red = mgmt.makePropertyKey("red").dataType(Integer.class).make()
+	green = mgmt.makePropertyKey("green").dataType(Integer.class).make()
+	blue = mgmt.makePropertyKey("blue").dataType(Integer.class).make()
 
 	num_children = mgmt.makePropertyKey("num_children").dataType(Integer.class).make()
 	num_selections = mgmt.makePropertyKey("num_selections").dataType(Integer.class).make()
@@ -62,6 +65,37 @@ createPropertiesAndKeys = { graph ->
 	selectionsIndex = mgmt.buildIndex('selectionsIndex', Vertex.class).addKey(num_children).addKey(num_selections).addKey(num_ancestry_children).buildMixedIndex("search")
 	mgmt.commit()
 	println("Done with setting keys.")
+}
+
+computeRGB = { error_vector_values ->
+	binary_string = error_vector_values.collect { String.format("%32s", Integer.toBinaryString(it)).replace(' ', '0') }.join("")
+	if (binary_string.size() % 24 != 0) {
+		binary_string = binary_string + "0"*(24 - binary_string.size() % 24)
+	}
+	partitions = binary_string.toList().collate(24)
+	partitions = (0..partitions.size()-1).collect { index ->
+		if (index % 2 == 0) {
+			partitions[index]
+		} else {
+			partitions[index].reverse()
+		}
+    }
+	final24 = partitions.inject([0]*24) { result, s ->
+		(0..23).collect { i ->
+			v = Integer.parseInt(s[i])
+			if (v == result[i]) {
+				0
+			} else {
+				1
+			}
+		}
+	}
+	eights = final24.collate(8)
+	(red, green, blue) = eights.collect { bits ->
+		Integer.parseInt(bits.collect( { Integer.toString(it) }).join(""), 2)
+	}
+
+	return [red, green, blue]
 }
 
 parseCsvFile = { graph, zippedCsvFile, runUUID ->
@@ -94,7 +128,14 @@ parseCsvFile = { graph, zippedCsvFile, runUUID ->
 			}
 			*/
 
-			error_vector_values = fields[10..-1].collect { it.toFloat() }
+			// The case to int here will be bad if the error values are ever
+			// actually floating point values, but it works for the integer values
+			// in the problems we're currently looking at.
+			error_vector_values = fields[10..-1].collect { (int) (it.toFloat()) }
+
+			(red, green, blue) = computeRGB(error_vector_values)
+			//println(r + " " + g + " " + b)
+
 			errors_with_indices = error_vector_values.withIndex() // [[a, 0], [b, 1], [c, 2], ...]
 			num_zero_errors_even_indices = errors_with_indices.findAll { it[1] % 2 == 0 && it[0] == 0 }.size
 			num_zero_errors_odd_indices = errors_with_indices.findAll { it[1] % 2 == 1 && it[0] == 0 }.size
@@ -125,7 +166,8 @@ parseCsvFile = { graph, zippedCsvFile, runUUID ->
 			// "total_error", total_error, "is_random_replacement", fields[9].toBoolean())
 			"total_error", total_error, "error_vector", errors,
 			"percent_zero_errors_evens", percent_zeros_even_indices,
-			"percent_zero_errors_odds", percent_zeros_odd_indices)
+			"percent_zero_errors_odds", percent_zeros_odd_indices, 
+			"red", red, "green", green, "blue", blue)
 			// errors.each { newVertex.property("error_vector", it) }
 
 			if (fields[3].length() > 5) {

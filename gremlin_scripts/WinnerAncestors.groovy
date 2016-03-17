@@ -43,7 +43,7 @@ anc = ancG.traversal()
 // pipeline, then everything works.
 
 // Run 0
-target_run_uuid = '7b389fd3-c73f-45bf-89b3-fe2c4bc920e5'
+target_run_uuid = '752e0990-b8ce-4712-b6d6-c9a6f120f89d'
 
 winners = []
 // The `; null` just spares us a ton of printing
@@ -58,7 +58,7 @@ g.V().has('generation', 300).has('run_uuid', target_run_uuid).fill(gen300); null
 // `inject()` adds `winners` and `gen300` to the pipeline) into a sequence
 // of their contents.
 // ancG = inject(winners).inject(gen300).unfold().repeat(__.inE().subgraph('sg').outV().dedup()).times(977).cap('sg').next()
-ancG = inject(winners).inject(gen300).unfold().repeat(__.inE().has('DL_dist', lt(900)).subgraph('sg').outV().dedup()).times(977).cap('sg').next()
+ancG = inject(winners).inject(gen300).unfold().repeat(__.inE().has('DL_dist', lt(9000)).subgraph('sg').outV().dedup()).times(977).cap('sg').next()
 anc = ancG.traversal()
 
 maxGen = anc.V().values('generation').max().next()
@@ -81,11 +81,13 @@ void printNode(fr, maxError, n) {
 		total_error = error_ceiling
 	 }
 
+	color = String.format("\"#%02x%02x%02x\"", n['red'], n['green'], n['blue'])
+
      // hue = 1.0/3 + (2.0/3)*Math.log(total_error+1)/Math.log(error_ceiling+1)
-     hue = 1.0/3 + (2.0/3) * (1 - n['pze_even'])
-     otherhue = 1.0/3 + (2.0/3) * (1 - n['pze_odd'])
-	 idk = "${hue} 1 1;0.5:${otherhue} 1 1"
-     color = "\"${idk}\""
+   //  hue = 1.0/3 + (2.0/3) * (1 - n['pze_even'])
+   //  otherhue = 1.0/3 + (2.0/3) * (1 - n['pze_odd'])
+	// idk = "${hue} 1 1;0.5:${otherhue} 1 1"
+    // color = "\"${idk}\""
      
      name = '"' + n['id'] + '"'
      
@@ -125,8 +127,16 @@ void printEdge(fr, e) {
 	}
 	*/
 
-	transparency = (edgeWidth/5) * 255
+	if(e['gos'] == ":uniform-mutation" || e['gos'] == ":uniform-close-mutation"){
+		transparency = 50
+	}else{
+		transparency = (edgeWidth/5) * 255
+	}
 	rounded = (int) Math.round(transparency)
+
+	if (rounded < 50) {
+		rounded = 50
+	}
 
 	trans = Integer.toHexString(rounded).toUpperCase();
 	if (e['gos'] == "[:alternation :uniform-mutation]"){
@@ -155,7 +165,7 @@ void printEdge(fr, e) {
 
 // Open the DOT file, print the DOT header info.
 // fr = new java.io.FileWriter("/Research/RSWN/recursive-variance-v3/data7_ancestors.dot")
-fr = new java.io.FileWriter("/Research/RSWN/lexicase/run1_DL_dist.dot")
+fr = new java.io.FileWriter("/Research/RSWN/lexicase/run0_bad_hash.dot")
 fr.println("digraph G {")
 
 // Generate nodes for all the generations
@@ -174,7 +184,10 @@ anc.V().
 	select('v').values('num_ancestry_children').as('nac').
 	select('v').values('percent_zero_errors_evens').as('pze_even').
 	select('v').values('percent_zero_errors_odds').as('pze_odd').
-	select('id', 'te', 'ns', 'nac', 'pze_even', 'pze_odd').
+	select('v').values('red').as('red').
+	select('v').values('green').as('green').
+	select('v').values('blue').as('blue').
+	select('id', 'te', 'ns', 'nac', 'pze_even', 'pze_odd', 'red', 'green', 'blue').
 	sideEffect{ printNode(fr, maxError, it.get()) }.
 	iterate(); null
 
