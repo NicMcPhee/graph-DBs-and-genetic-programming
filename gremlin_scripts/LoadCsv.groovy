@@ -36,6 +36,7 @@ createPropertiesAndKeys = { graph ->
 	generation = mgmt.makePropertyKey("generation").dataType(Integer.class).make()
 	location = mgmt.makePropertyKey("location").dataType(Integer.class).make()
 	genetic_operators = mgmt.makePropertyKey("genetic_operators").dataType(String.class).make()
+	plush_genome_size_prop = mgmt.makePropertyKey("plush_genome_size").dataType(Integer.class).make()
 	plush_genome = mgmt.makePropertyKey("plush_genome").dataType(String.class).make()
 	total_error = mgmt.makePropertyKey("total_error").dataType(Float.class).make()
 	is_random_replacement = mgmt.makePropertyKey("is_random_replacement").dataType(Boolean.class).make()
@@ -162,11 +163,13 @@ parseCsvFile = { graph, zippedCsvFile, runUUID ->
 			newVertex = graph.addVertex(label, "individual", "run_uuid", runUUID,
 			"uuid", fields[0],
 			"generation", fields[1].toInteger(), "location", fields[2].toInteger(),
-			"genetic_operators", fields[4], "plush_genome", fields[8],
+			"genetic_operators", fields[4],
+			"plush_genome_size", fields[6],
+			"plush_genome", fields[8],
 			// "total_error", total_error, "is_random_replacement", fields[9].toBoolean())
 			"total_error", total_error, "error_vector", errors,
 			"percent_zero_errors_evens", percent_zeros_even_indices,
-			"percent_zero_errors_odds", percent_zeros_odd_indices, 
+			"percent_zero_errors_odds", percent_zeros_odd_indices,
 			"red", red, "green", green, "blue", blue)
 			// errors.each { newVertex.property("error_vector", it) }
 
@@ -199,21 +202,21 @@ parseCsvFile = { graph, zippedCsvFile, runUUID ->
 addNumSelections = { graph, maxGen ->
 	g = graph.traversal()
 
-	(0..maxGen).each { gen -> g.V().has('generation', gen).sideEffect { 
-			       num_selections = it.get().edges(Direction.OUT).size(); 
-			       it.get().property('num_selections', num_selections) }.iterate(); 
-			   graph.tx().commit(); 
+	(0..maxGen).each { gen -> g.V().has('generation', gen).sideEffect {
+			       num_selections = it.get().edges(Direction.OUT).size();
+			       it.get().property('num_selections', num_selections) }.iterate();
+			   graph.tx().commit();
 			   println gen }
 }
 
 addNumChildren = { graph, maxGen ->
 	g = graph.traversal()
 
-	(0..maxGen).each { gen -> g.V().has('generation', gen).sideEffect { 
-			       edges = it.get().edges(Direction.OUT); 
-			       num_children = edges.collect { it.inVertex() }.unique().size(); 
-			       it.get().property('num_children', num_children) }.iterate(); 
-			   graph.tx().commit(); 
+	(0..maxGen).each { gen -> g.V().has('generation', gen).sideEffect {
+			       edges = it.get().edges(Direction.OUT);
+			       num_children = edges.collect { it.inVertex() }.unique().size();
+			       it.get().property('num_children', num_children) }.iterate();
+			   graph.tx().commit();
 			   println gen }
 }
 
@@ -231,14 +234,14 @@ addLevenshteinDistances = { graph, maxGen ->
 	(0..maxGen).each { gen ->
 	    g.V().has('generation', gen).sideEffect { node_traverser ->
 	    	node = node_traverser.get()
-	        items = genome_items(node)
-		child_edges = node.edges(Direction.OUT)
-		child_edges.each { child_edge ->
-	           child = child_edge.inVertex()
-		   child_items = genome_items(child)
-		   dist = MethodRankHelper.damerauLevenshteinDistance(items, child_items)
-		   child_edge.property('DL_dist', dist)
-		}
+	      items = genome_items(node)
+				child_edges = node.edges(Direction.OUT)
+				child_edges.each { child_edge ->
+	      	child = child_edge.inVertex()
+					child_items = genome_items(child)
+					dist = MethodRankHelper.damerauLevenshteinDistance(items, child_items)
+					child_edge.property('DL_dist', dist)
+				}
 	    }.iterate()
 	    graph.tx().commit()
 	    println gen
@@ -261,7 +264,7 @@ loadCsv = { propertiesFileName, csvFilePath ->
 
 	path = FileSystems.getDefault().getPath(csvFilePath)
 	runFileName = path.getFileName().toString()
-	
+
 	(maxGen, successful) = parseCsvFile(graph, csvFilePath, runUUID)
 	addNumSelections(graph, maxGen)
 	addNumChildren(graph, maxGen)
