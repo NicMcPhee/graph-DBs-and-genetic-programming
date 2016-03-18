@@ -42,12 +42,14 @@ anc = ancG.traversal()
 // in Groovy lists, and then use `inject` and `unfold` to insert them into a
 // pipeline, then everything works.
 
-// Run 0
-target_run_uuid = '752e0990-b8ce-4712-b6d6-c9a6f120f89d'
+target_run_uuid = '83dea836-90e5-428a-96cc-48161fb8235e'
 
 winners = []
 // The `; null` just spares us a ton of printing
-g.V().has('total_error', 0).has('run_uuid', target_run_uuid).fill(winners); null
+g.V().
+    has('total_error', 0).
+    // has('run_uuid', target_run_uuid).
+    fill(winners); null
 
 // The 300 here assumes that unsuccessful runs go out to generation 300. We should
 // try to remove that magic constant, maybe by querying for the largest generation?
@@ -58,7 +60,13 @@ g.V().has('generation', 300).has('run_uuid', target_run_uuid).fill(gen300); null
 // `inject()` adds `winners` and `gen300` to the pipeline) into a sequence
 // of their contents.
 // ancG = inject(winners).inject(gen300).unfold().repeat(__.inE().subgraph('sg').outV().dedup()).times(977).cap('sg').next()
-ancG = inject(winners).inject(gen300).unfold().repeat(__.inE().has('DL_dist', lt(9000)).subgraph('sg').outV().dedup()).times(977).cap('sg').next()
+ancG = inject(winners).
+          // inject(gen300).
+	  unfold().
+	  repeat(__.inE().
+		 hasNot('minimal_contribution').
+		 subgraph('sg').outV().dedup()).
+	  times(977).cap('sg').next()
 anc = ancG.traversal()
 
 maxGen = anc.V().values('generation').max().next()
@@ -88,15 +96,15 @@ void printNode(fr, maxError, n) {
    //  otherhue = 1.0/3 + (2.0/3) * (1 - n['pze_odd'])
 	// idk = "${hue} 1 1;0.5:${otherhue} 1 1"
     // color = "\"${idk}\""
-     
+
      name = '"' + n['id'] + '"'
-     
+
      params = "[shape=rectangle, width="
      params = params + width + ", height="
 	 params = params + height + ", style=filled, fillcolor="
 	 // params = params + width + ", style=filled, fillcolor="
      params = params + color + "]"
-     
+
      fr.println(name  + " " + params + ";")
 }
 
@@ -160,12 +168,14 @@ void printEdge(fr, e) {
 		c = "red";
 		sty = "solid";
 	}
-	fr.println('"' + e['parent'] + '"' + " -> " + '"' + e['child'] + '"' + " [color=\"${c}\", penwidth=${edgeWidth}, style=\"${sty}\"];")
+
+	DL_dist = e['DL_dist']/10
+	fr.println('"' + e['parent'] + '"' + " -> " + '"' + e['child'] + '"' + " [color=\"${c}\", penwidth=${edgeWidth}, style=\"${sty}\", label=\" ${DL_dist}\"];")
 }
 
 // Open the DOT file, print the DOT header info.
 // fr = new java.io.FileWriter("/Research/RSWN/recursive-variance-v3/data7_ancestors.dot")
-fr = new java.io.FileWriter("/Research/RSWN/lexicase/run0_bad_hash.dot")
+fr = new java.io.FileWriter("/Research/RSWN/lexicase/run8_filtered.dot")
 fr.println("digraph G {")
 
 // Generate nodes for all the generations
