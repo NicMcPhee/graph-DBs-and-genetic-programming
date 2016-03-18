@@ -67,7 +67,7 @@ createPropertiesAndKeys = { graph ->
 	generationTotalError = mgmt.buildIndex('generationTotalError', Vertex.class).addKey(generation).addKey(total_error).buildMixedIndex("search")
 	selectionsIndex = mgmt.buildIndex('selectionsIndex', Vertex.class).addKey(num_children).addKey(num_selections).addKey(num_ancestry_children).buildMixedIndex("search")
 	mgmt.commit()
-	println("Done with setting keys.")
+	//println("Done with setting keys.")
 }
 
 computeRGB = { error_vector_values ->
@@ -115,7 +115,7 @@ parseCsvFile = { graph, zippedCsvFile, runUUID ->
 	successful = false // Was this run successful (i.e., zero error?)
 	maxGen = 0 // The last (& largest) generation number in this run
 	while ((line = reader.readLine()) != null) {
-		if (theCount % 1000 == 0) {
+		if (theCount % 10000 == 0) {
 			println("Count = ${theCount}")
 		}
 		// The first line is the headers, which we currently ignore. We really
@@ -123,12 +123,12 @@ parseCsvFile = { graph, zippedCsvFile, runUUID ->
 		// up fiddling by hand below.
 		if (theCount > 0) {
 			fields = this.fastSplit(line)
+
 			// This only makes sense if we're using is-random-replacement
 			// (and it's in location 9).
 			/*
-			if (fields[9] == "") {
-			fields[9] = true
-			}
+			if (fields[9] == "") { is_rand = true }	
+			else { is_rand = fields[9].toBoolean()}		
 			*/
 
 			// The case to int here will be bad if the error values are ever
@@ -150,11 +150,11 @@ parseCsvFile = { graph, zippedCsvFile, runUUID ->
 			errors = fields[10..-1].join(",")
 
 			if((theCount % 1000) == 0){
-				println("Commiting at: "+theCount)
+				//println("Commiting at: "+theCount)
 				graph.tx().commit()
 			}
 			// Remember to change this to fields[9] when working with non autoconstuctive runs!
-			total_error = fields[9].toFloat()
+			total_error = fields[8].toFloat()
 			if (total_error == 0) {
 				successful = true;
 			}
@@ -168,7 +168,7 @@ parseCsvFile = { graph, zippedCsvFile, runUUID ->
 			"genetic_operators", fields[4],
 			"plush_genome_size", fields[6],
 			"plush_genome", fields[8],
-			// "total_error", total_error, "is_random_replacement", fields[9].toBoolean())
+			 //"total_error", total_error, "is_random_replacement", is_rand, "error_vector", errors,
 			"total_error", total_error, "error_vector", errors,
 			"percent_zero_errors_evens", percent_zeros_even_indices,
 			"percent_zero_errors_odds", percent_zeros_odd_indices,
@@ -180,17 +180,13 @@ parseCsvFile = { graph, zippedCsvFile, runUUID ->
 				// println "<" + motherUuid + "> ::: <" + fatherUuid + ">"
 				mother = g.V().has("uuid", motherUuid).next()
 				motherEdge = mother.addEdge('parent_of', newVertex)
-				// We commented out the properties because they're not meaningful
-				// for the non-autoconstructive runs.
 				motherEdge.property("parent_type", "mother")
-
 				if (fields[3].length() > 48) {
 					fatherUuid = fields[3][45..-5]
 					father = g.V().has("uuid", fatherUuid).next()
 					fatherEdge = father.addEdge('parent_of', newVertex)
 					fatherEdge.property("parent_type", "father")
 				}
-
 			}
 		}
 		++theCount
@@ -313,7 +309,7 @@ loadCsv = { propertiesFileName, csvFilePath ->
 println("The necessary functions are now loaded.")
 
 println("To load a CSV file use a call like:\n\
-\tgraph = loadCsv('genome_db.properties', '/Research/RSWN/lexicase/data0.csv.gz')\n\
+\tgraph = loadCsv('autoconstruction_db.properties', '/Research/RSWN/recursive-variance-v3/data5.csv.gz')\n\
 \tg = graph.traversal()\n\
 where you replace 'genome_db.properties' with the name of your properties file\n\
 and '/Research/RSWN/lexicase/data0.csv.gz' with the path to your compressed CSV file.")

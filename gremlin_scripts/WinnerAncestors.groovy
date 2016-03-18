@@ -2,8 +2,8 @@
 // graph loaded.
 import java.io.*
 
-// graph = TitanFactory.open('genome_db.properties')
-// g = graph.traversal()
+ graph = TitanFactory.open('autoconstruction_db.properties')
+ g = graph.traversal()
 
 def all_ancestors(starters) {
     result = starters
@@ -28,7 +28,7 @@ anc = ancG.traversal()
 */
 
 /*
-// Uncomment these two lines if you don't have the ancestral subgraph computed.
+// Uncomment these two lines if you don't have the ancestral subgraph computed with autoconstruction.
 
 // ancG = g.V().has('total_error', 0).repeat(__.has('is_random_replacement', false).inE().subgraph('sg').outV().dedup()).times(800).cap('sg').next()
 // anc = ancG.traversal()
@@ -42,7 +42,12 @@ anc = ancG.traversal()
 // in Groovy lists, and then use `inject` and `unfold` to insert them into a
 // pipeline, then everything works.
 
-target_run_uuid = '83dea836-90e5-428a-96cc-48161fb8235e'
+// Run 0
+//target_run_uuid = '752e0990-b8ce-4712-b6d6-c9a6f120f89d'
+// Run 1 (mags)
+//target_run_uuid = '3b2ba747-d2d0-4efe-9a35-f64ad8e82792'
+// Auto Run 5
+target_run_uuid = 'cc98e4b9-2cd5-4ae0-b7cc-d4eeacf4d2b1'
 
 winners = []
 // The `; null` just spares us a ton of printing
@@ -54,13 +59,13 @@ g.V().
 // The 300 here assumes that unsuccessful runs go out to generation 300. We should
 // try to remove that magic constant, maybe by querying for the largest generation?
 gen300 = []
-g.V().has('generation', 300).has('run_uuid', target_run_uuid).fill(gen300); null
+//g.V().has('generation', 300).has('run_uuid', target_run_uuid).fill(gen300); null
 
 // The `unfold()` is necessary to convert the two big lists (which is how
 // `inject()` adds `winners` and `gen300` to the pipeline) into a sequence
 // of their contents.
-// ancG = inject(winners).inject(gen300).unfold().repeat(__.inE().subgraph('sg').outV().dedup()).times(977).cap('sg').next()
 ancG = inject(winners).
+          // Uncomment the next line for an unsuccessful run
           // inject(gen300).
 	  unfold().
 	  repeat(__.inE().
@@ -71,6 +76,7 @@ anc = ancG.traversal()
 
 maxGen = anc.V().values('generation').max().next()
 maxError = anc.V().values('total_error').max().next()
+//maxDist = anc.E().values('DL_dist').max().next()
 
 (0..maxGen).each { gen -> anc.V().has('generation', gen).sideEffect { edges = it.get().edges(Direction.OUT); num_ancestry_children = edges.collect { it.inVertex() }.unique().size(); it.get().property('num_ancestry_children', num_ancestry_children) }.iterate(); graph.tx().commit(); println gen }
 
@@ -80,7 +86,24 @@ void printNode(fr, maxError, n) {
      width = n['ns']/50
      height = n['nac']/10
 
-	 error_ceiling = 10000
+	// Make array of stored string
+	total_error_vector = n['ev'].split(",")
+	even_total_error = 0
+	odd_total_error = 0
+	// Limit total errors if above the ceiling limit
+	error_ceiling = 100000
+	// Get sum of total error from even and odd indicies
+	total_error_vector.eachWithIndex{ item, index ->
+		if (index % 2 == 0) {
+			if (item.size() > 6) { even_total_error = error_ceiling }
+			else { even_total_error += item.toInteger() }
+		} else {
+			if (item.size() > 6){ odd_total_error = error_ceiling }
+			else { odd_total_error += item.toInteger() }
+		}
+	}
+
+/*
 	 if (maxError < error_ceiling) {
 		error_ceiling = maxError
 	 }
@@ -88,15 +111,22 @@ void printNode(fr, maxError, n) {
 	 if (total_error > error_ceiling) {
 		total_error = error_ceiling
 	 }
+*/
 
-	color = String.format("\"#%02x%02x%02x\"", n['red'], n['green'], n['blue'])
+	// For bad hash function coloring
+	// color = String.format("\"#%02x%02x%02x\"", n['red'], n['green'], n['blue'])
 
-     // hue = 1.0/3 + (2.0/3)*Math.log(total_error+1)/Math.log(error_ceiling+1)
-   //  hue = 1.0/3 + (2.0/3) * (1 - n['pze_even'])
-   //  otherhue = 1.0/3 + (2.0/3) * (1 - n['pze_odd'])
-	// idk = "${hue} 1 1;0.5:${otherhue} 1 1"
-    // color = "\"${idk}\""
+	// Assigning the hue of a node to be the total_error (single coloring)
+	// hue = 1.0/6 + (5.0/6)*Math.log(total_error+1)/Math.log(error_ceiling+1)
 
+	// Assigning hue based on percentage of zeros
+	 hue = 1.0/6 + (5.0/6) * (1 - n['pze_even'])
+	 shade = 1-(Math.log(even_total_error+1)/Math.log(error_ceiling+1))
+	 otherhue = 1.0/6 + (5.0/6) * (1 - n['pze_odd'])
+	 othershade = 1-(Math.log(odd_total_error+1)/Math.log(error_ceiling+1))
+  	 combo = "${hue} 1 ${shade};0.5:${otherhue} 1 ${othershade}"
+	 color = "\"${combo}\""
+	
      name = '"' + n['id'] + '"'
 
      params = "[shape=rectangle, width="
@@ -111,18 +141,20 @@ void printNode(fr, maxError, n) {
 // The target edge line format:
 //	"82:393" -> "83:619";
 void printEdge(fr, e) {
-     /*
-	if (e['type'] == "mother") {
-		c = "gray40";
-	} else {
-		c = "gray70";
-	}
-	*/
+    // For autoconstruction
+	/*if (e['type'] == "mother") { c = "gray40" } 
+	else { c = "gray70" }
+	sty = "solid"*/
 
 	// Add one and multiply by four to make the line visible
 	// edgeWidth = (1+(e['ns']/1000))*4
-
 	edgeWidth = (1 - e['DL_dist']/1000.0)*5
+
+	// Played with edge width based on max difference, 
+	// not too helpful at this time.
+	// edgeWidth = (1-(Math.log(e['DL_dist']+1)/Math.log(maxDist+1)))*5
+	// edgeWidth = (1-(e['DL_dist']/maxDist))*5
+
 	if (edgeWidth <= 0.5) { edgeWidth = 0.5 }
 
 	/*
@@ -136,14 +168,10 @@ void printEdge(fr, e) {
 	*/
 
 	if(e['gos'] == ":uniform-mutation" || e['gos'] == ":uniform-close-mutation"){
-		transparency = 50
-	}else{
-		transparency = (edgeWidth/5) * 255
-	}
-	rounded = (int) Math.round(transparency)
-
-	if (rounded < 50) {
 		rounded = 50
+	}else{
+		rounded = (int) Math.round((edgeWidth/5) * 255)
+		if (rounded < 50) { rounded = 50 }
 	}
 
 	trans = Integer.toHexString(rounded).toUpperCase();
@@ -175,7 +203,9 @@ void printEdge(fr, e) {
 
 // Open the DOT file, print the DOT header info.
 // fr = new java.io.FileWriter("/Research/RSWN/recursive-variance-v3/data7_ancestors.dot")
+
 fr = new java.io.FileWriter("/Research/RSWN/lexicase/run8_filtered.dot")
+
 fr.println("digraph G {")
 
 // Generate nodes for all the generations
@@ -192,12 +222,13 @@ anc.V().
 	select('v').values('num_selections').as('ns').
 	select('v').values('total_error').as('te').
 	select('v').values('num_ancestry_children').as('nac').
+	select('v').values('error_vector').as('ev').
 	select('v').values('percent_zero_errors_evens').as('pze_even').
 	select('v').values('percent_zero_errors_odds').as('pze_odd').
-	select('v').values('red').as('red').
-	select('v').values('green').as('green').
-	select('v').values('blue').as('blue').
-	select('id', 'te', 'ns', 'nac', 'pze_even', 'pze_odd', 'red', 'green', 'blue').
+	//select('v').values('red').as('red').
+	//select('v').values('green').as('green').
+	//select('v').values('blue').as('blue').
+	select('id', 'te', 'ns', 'nac', 'ev', 'pze_even', 'pze_odd').//, 'red', 'green', 'blue').
 	sideEffect{ printNode(fr, maxError, it.get()) }.
 	iterate(); null
 
@@ -209,8 +240,8 @@ anc.E().
 	select('e').inV().values('uuid').as('child').
 	select('e').inV().values('genetic_operators').as('gos').
 	select('e').values('DL_dist').as('DL_dist').
-	// select('e').values('parent_type').as('type').
-	select('parent', 'child', 'gos', 'ns', 'nc', 'DL_dist'). // , 'type').
+	//select('e').values('parent_type').as('type').
+	select('parent', 'child', 'gos', 'ns', 'nc', 'DL_dist').//, 'type').
 	sideEffect{ printEdge(fr, it.get()) }.
 	iterate(); null
 
