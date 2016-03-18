@@ -51,6 +51,8 @@ createPropertiesAndKeys = { graph ->
 	num_selections = mgmt.makePropertyKey("num_selections").dataType(Integer.class).make()
 	num_ancestry_children = mgmt.makePropertyKey("num_ancestry_children").dataType(Integer.class).make()
 
+	minimal_contribution_prop = mgmt.makePropertyKey('minimal_contribution').dataType(Boolean.class).make()
+
 	// Vertex Labels
 	individual = mgmt.makeVertexLabel('individual').make()
 	run = mgmt.makeVertexLabel('run').make()
@@ -248,6 +250,30 @@ addLevenshteinDistances = { graph, maxGen ->
 	}
 }
 
+addMinimalContributionProperty = { graph, maxGen ->
+	g = graph.traversal()
+
+	(0..maxGen).each { gen ->
+		g.V().has('generation', gen).sideEffect { node_traverser ->
+			child = node_traverser.get()
+			child_size = child.value('plush_genome_size')
+			parent_edges = child.edges(Direction.IN).sort{ it.value('DL_dist') }
+			unique_parents = parent_edges.collect{ it.outVertex() }.unique()
+			if (unique_parents.size() == 2) {
+			  parent_edges = child.edges(Direction.IN).sort{ it.value('DL_dist') }
+			  distances = parent_edges.collect{ it.value('DL_dist') }
+			  parent_edges = child.edges(Direction.IN).sort{ it.value('DL_dist') }
+			  if (distances[0] / 10 < 0.2*child_size || distances[1] >= 2 * distances[0]) {
+			    // println "${child_size}, ${distances[0]}, and ${distances[1]}"
+			    parent_edges[1].property('minimal_contribution', true)
+			  }
+			}
+		}.iterate()
+		graph.tx().commit()
+		println gen
+	}
+}
+
 addRunNode = { graph, runUUID, runFileName, successful, maxGen ->
 	runVertex = graph.addVertex(label, "run", "run_uuid", runUUID, "data_file", runFileName, "successful", successful, "max_generation", maxGen)
 	graph.tx().commit()
@@ -266,10 +292,13 @@ loadCsv = { propertiesFileName, csvFilePath ->
 	runFileName = path.getFileName().toString()
 
 	(maxGen, successful) = parseCsvFile(graph, csvFilePath, runUUID)
+
+	addLevenshteinDistances(graph, maxGen)
+	addMinimalContributionProperty(graph, maxGen)
+
 	addNumSelections(graph, maxGen)
 	addNumChildren(graph, maxGen)
 
-	addLevenshteinDistances(graph, maxGen)
 
 	// If we put this before addNumSelections, etc., can we pull
 	// maxGen out of the run node and not need to pass it as an
