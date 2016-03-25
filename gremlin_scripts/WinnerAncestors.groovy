@@ -53,7 +53,10 @@ target_run_uuid = '3b2ba747-d2d0-4efe-9a35-f64ad8e82792'
 
 winners = []
 // The `; null` just spares us a ton of printing
-g.V().has('total_error', 0).has('run_uuid', target_run_uuid).fill(winners); null
+g.V().
+    has('total_error', 0).
+    // has('run_uuid', target_run_uuid).
+    fill(winners); null
 
 // The 300 here assumes that unsuccessful runs go out to generation 300. We should
 // try to remove that magic constant, maybe by querying for the largest generation?
@@ -64,7 +67,14 @@ gen300 = []
 // `inject()` adds `winners` and `gen300` to the pipeline) into a sequence
 // of their contents.
 //ancG = inject(winners).inject(gen300).unfold().repeat(__.inE().subgraph('sg').outV().dedup()).times(800).cap('sg').next()
-ancG = inject(winners).inject(gen300).unfold().repeat(__.inE().has('DL_dist', lt(900)).subgraph('sg').outV().dedup()).times(977).cap('sg').next()
+ancG = inject(winners).
+          // Uncomment the next line for an unsuccessful run
+          // inject(gen300).
+	  unfold().
+	  repeat(__.inE().
+		 hasNot('minimal_contribution').
+		 subgraph('sg').outV().dedup()).
+	  times(977).cap('sg').next()
 anc = ancG.traversal()
 
 maxGen = anc.V().values('generation').max().next()
@@ -81,13 +91,13 @@ void printNode(fr, maxError, n, color_map) {
 
 	// Make array of stored string
 	total_error_vector = n['ev'].split(",")
-	//println(total_error_vector)
+
 	even_total_error = 0
 	odd_total_error = 0
 	// Limit total errors if above the ceiling limit
 	//error_ceiling = 100000
 	// Get sum of total error from even and odd indicies
-/*	total_error_vector.eachWithIndex{ item, index ->
+	total_error_vector.eachWithIndex{ item, index ->
 		if (index % 2 == 0) {
 			if (item.size() > 6) { even_total_error = error_ceiling }
 			else { even_total_error += item.toInteger() }
@@ -95,8 +105,8 @@ void printNode(fr, maxError, n, color_map) {
 			if (item.size() > 6){ odd_total_error = error_ceiling }
 			else { odd_total_error += item.toInteger() }
 		}
-	}*/
-	zero_one_errors = total_error_vector.collect{ item ->
+	}
+	/*zero_one_errors = total_error_vector.collect{ item ->
 		if (item.size() > 6) { 
 			v = 1
 		} else { 
@@ -106,8 +116,8 @@ void printNode(fr, maxError, n, color_map) {
 			}
 		}
 		v
-	}
-	println(zero_one_errors)
+	}*/
+
 	(red, green, blue) = color_map[zero_one_errors]
 	println([red, green, blue])
 	num_zeros = 0
@@ -119,7 +129,7 @@ void printNode(fr, maxError, n, color_map) {
 	}
 	per_num_zeros = num_zeros/200
 	println("The percentage value is "+ per_num_zeros)
-	error_ceiling = 100000
+	
 	 if (maxError < error_ceiling) {
 		error_ceiling = maxError
 	 }
@@ -131,6 +141,8 @@ void printNode(fr, maxError, n, color_map) {
 
 	// For bad hash function coloring
 	//color = String.format("\"#%02x%02x%02x\"", n['red'], n['green'], n['blue'])
+
+	// For RBM coloring
 	color = String.format("\"#%02x%02x%02x\"", red, green, blue)
 
 	// Assigning the hue of a node to be the total_error (single coloring)
@@ -158,6 +170,7 @@ void printNode(fr, maxError, n, color_map) {
 	 params = params + height + ", style=filled, fillcolor="
 	 // params = params + width + ", style=filled, fillcolor="
      params = params + color + "]"
+
      fr.println(name  + " " + params + ";")
 }
 
@@ -228,12 +241,14 @@ void printEdge(fr, e) {
 		sty = "solid";
 	}
 
-	fr.println('"' + e['parent'] + '"' + " -> " + '"' + e['child'] + '"' + " [color=\"${c}\", penwidth=${edgeWidth}, style=\"${sty}\"];")
+	DL_dist = e['DL_dist']/10
+	fr.println('"' + e['parent'] + '"' + " -> " + '"' + e['child'] + '"' + " [color=\"${c}\", penwidth=${edgeWidth}, style=\"${sty}\", label=\" ${DL_dist}\"];")
 }
 
 // Open the DOT file, print the DOT header info.
 fr = new java.io.FileWriter("/Research/RSWN/lexicase/run1_generic_name.dot")
-//fr = new java.io.FileWriter("/Research/RSWN/recursive-variance-v3/run5_uni_color_shaded.dot")
+// fr = new java.io.FileWriter("/Research/RSWN/recursive-variance-v3/data7_ancestors.dot")
+
 fr.println("digraph G {")
 
 // Generate nodes for all the generations
