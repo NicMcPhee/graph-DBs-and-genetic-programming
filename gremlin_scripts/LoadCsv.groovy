@@ -42,9 +42,9 @@ createPropertiesAndKeys = { graph ->
 	error_vector = mgmt.makePropertyKey("error_vector").dataType(String.class).make()
 	percent_zero_errors_even_indices = mgmt.makePropertyKey("percent_zero_errors_evens").dataType(Float.class).make()
 	percent_zero_errors_odd_indices = mgmt.makePropertyKey("percent_zero_errors_odds").dataType(Float.class).make()
-	red = mgmt.makePropertyKey("red").dataType(Integer.class).make()
-	green = mgmt.makePropertyKey("green").dataType(Integer.class).make()
-	blue = mgmt.makePropertyKey("blue").dataType(Integer.class).make()
+//	red = mgmt.makePropertyKey("red").dataType(Integer.class).make()
+//	green = mgmt.makePropertyKey("green").dataType(Integer.class).make()
+//	blue = mgmt.makePropertyKey("blue").dataType(Integer.class).make()
 
 	num_children = mgmt.makePropertyKey("num_children").dataType(Integer.class).make()
 	num_selections = mgmt.makePropertyKey("num_selections").dataType(Integer.class).make()
@@ -101,7 +101,7 @@ computeRGB = { error_vector_values ->
 parseCsvFile = { graph, zippedCsvFile, runUUID ->
 	g = graph.traversal()
 
-	println("We're in the parse section!")
+	//println("We're in the parse section!")
 
 	fileStream = new FileInputStream(zippedCsvFile)
 	gzipStream = new GZIPInputStream(fileStream)
@@ -132,8 +132,8 @@ parseCsvFile = { graph, zippedCsvFile, runUUID ->
 			// actually floating point values, but it works for the integer values
 			// in the problems we're currently looking at.
 			error_vector_values = fields[10..-1].collect { (int) (it.toFloat()) }
-
-			(red, green, blue) = computeRGB(error_vector_values)
+	
+			//q(red, green, blue) = computeRGB(error_vector_values)
 			//println(r + " " + g + " " + b)
 
 			errors_with_indices = error_vector_values.withIndex() // [[a, 0], [b, 1], [c, 2], ...]
@@ -147,7 +147,7 @@ parseCsvFile = { graph, zippedCsvFile, runUUID ->
 			errors = fields[10..-1].join(",")
 
 			if((theCount % 1000) == 0){
-				//println("Commiting at: "+theCount)
+				println("Commiting at: "+theCount)
 				graph.tx().commit()
 			}
 			// Remember to change this to fields[9] when working with non autoconstuctive runs!
@@ -163,11 +163,11 @@ parseCsvFile = { graph, zippedCsvFile, runUUID ->
 			"uuid", fields[0],
 			"generation", fields[1].toInteger(), "location", fields[2].toInteger(),
 			"genetic_operators", fields[4], "plush_genome", fields[7],
-			 //"total_error", total_error, "is_random_replacement", is_rand, "error_vector", errors,
+			//"total_error", total_error, "is_random_replacement", is_rand, "error_vector", errors,
 			"total_error", total_error, "error_vector", errors,
 			"percent_zero_errors_evens", percent_zeros_even_indices,
-			"percent_zero_errors_odds", percent_zeros_odd_indices, 
-			"red", red, "green", green, "blue", blue)
+			"percent_zero_errors_odds", percent_zeros_odd_indices)//, 
+			//"red", red, "green", green, "blue", blue)
 			// errors.each { newVertex.property("error_vector", it) }
 
 			if (fields[3].length() > 5) {
@@ -262,7 +262,7 @@ loadCsv = { propertiesFileName, csvFilePath ->
 	addNumSelections(graph, maxGen)
 	addNumChildren(graph, maxGen)
 
-	addLevenshteinDistances(graph, maxGen)
+	//addLevenshteinDistances(graph, maxGen)
 
 	// If we put this before addNumSelections, etc., can we pull
 	// maxGen out of the run node and not need to pass it as an
@@ -277,7 +277,7 @@ loadCsv = { propertiesFileName, csvFilePath ->
 println("The necessary functions are now loaded.")
 
 println("To load a CSV file use a call like:\n\
-\tgraph = loadCsv('autoconstruction_db.properties', '/Research/RSWN/recursive-variance-v3/data5.csv.gz')\n\
+\tgraph = loadCsv('genome_db.properties', '/Research/RSWN/lexicase/data0.csv.gz')\n\
 \tg = graph.traversal()\n\
 where you replace 'genome_db.properties' with the name of your properties file\n\
 and '/Research/RSWN/lexicase/data0.csv.gz' with the path to your compressed CSV file.")
