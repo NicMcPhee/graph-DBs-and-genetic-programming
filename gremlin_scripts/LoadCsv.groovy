@@ -43,9 +43,6 @@ createPropertiesAndKeys = { graph ->
 	error_vector = mgmt.makePropertyKey("error_vector").dataType(String.class).make()
 	percent_zero_errors_even_indices = mgmt.makePropertyKey("percent_zero_errors_evens").dataType(Float.class).make()
 	percent_zero_errors_odd_indices = mgmt.makePropertyKey("percent_zero_errors_odds").dataType(Float.class).make()
-	red = mgmt.makePropertyKey("red").dataType(Integer.class).make()
-	green = mgmt.makePropertyKey("green").dataType(Integer.class).make()
-	blue = mgmt.makePropertyKey("blue").dataType(Integer.class).make()
 
 	num_children = mgmt.makePropertyKey("num_children").dataType(Integer.class).make()
 	num_selections = mgmt.makePropertyKey("num_selections").dataType(Integer.class).make()
@@ -70,37 +67,6 @@ createPropertiesAndKeys = { graph ->
 	//println("Done with setting keys.")
 }
 
-computeRGB = { error_vector_values ->
-	binary_string = error_vector_values.collect { String.format("%32s", Integer.toBinaryString(it)).replace(' ', '0') }.join("")
-	if (binary_string.size() % 24 != 0) {
-		binary_string = binary_string + "0"*(24 - binary_string.size() % 24)
-	}
-	partitions = binary_string.toList().collate(24)
-	partitions = (0..partitions.size()-1).collect { index ->
-		if (index % 2 == 0) {
-			partitions[index]
-		} else {
-			partitions[index].reverse()
-		}
-    }
-	final24 = partitions.inject([0]*24) { result, s ->
-		(0..23).collect { i ->
-			v = Integer.parseInt(s[i])
-			if (v == result[i]) {
-				0
-			} else {
-				1
-			}
-		}
-	}
-	eights = final24.collate(8)
-	(red, green, blue) = eights.collect { bits ->
-		Integer.parseInt(bits.collect( { Integer.toString(it) }).join(""), 2)
-	}
-
-	return [red, green, blue]
-}
-
 parseCsvFile = { graph, zippedCsvFile, runUUID ->
 	g = graph.traversal()
 
@@ -123,7 +89,6 @@ parseCsvFile = { graph, zippedCsvFile, runUUID ->
 		// up fiddling by hand below.
 		if (theCount > 0) {
 			fields = this.fastSplit(line)
-
 			// This only makes sense if we're using is-random-replacement
 			// (and it's in location 9).
 			/*
@@ -135,9 +100,6 @@ parseCsvFile = { graph, zippedCsvFile, runUUID ->
 			// actually floating point values, but it works for the integer values
 			// in the problems we're currently looking at.
 			error_vector_values = fields[10..-1].collect { (int) (it.toFloat()) }
-	
-			//q(red, green, blue) = computeRGB(error_vector_values)
-			//println(r + " " + g + " " + b)
 
 			errors_with_indices = error_vector_values.withIndex() // [[a, 0], [b, 1], [c, 2], ...]
 			num_zero_errors_even_indices = errors_with_indices.findAll { it[1] % 2 == 0 && it[0] == 0 }.size
@@ -154,7 +116,7 @@ parseCsvFile = { graph, zippedCsvFile, runUUID ->
 				graph.tx().commit()
 			}
 			// Remember to change this to fields[9] when working with non autoconstuctive runs!
-			total_error = fields[8].toFloat()
+			total_error = fields[9].toFloat()
 			if (total_error == 0) {
 				successful = true;
 			}
@@ -162,18 +124,18 @@ parseCsvFile = { graph, zippedCsvFile, runUUID ->
 			if (gen > maxGen){
 				maxGen = gen;
 			}
+
 			newVertex = graph.addVertex(label, "individual", "run_uuid", runUUID,
 			"uuid", fields[0],
 			"generation", fields[1].toInteger(), "location", fields[2].toInteger(),
 			"genetic_operators", fields[4],
 			"plush_genome_size", fields[6],
 			"plush_genome", fields[8],
-			 //"total_error", total_error, "is_random_replacement", is_rand, "error_vector", errors,
+			// For autoconstruction runs
+			//"total_error", total_error, "is_random_replacement", is_rand, "error_vector", errors,
 			"total_error", total_error, "error_vector", errors,
 			"percent_zero_errors_evens", percent_zeros_even_indices,
-			"percent_zero_errors_odds", percent_zeros_odd_indices,
-			"red", red, "green", green, "blue", blue)
-			// errors.each { newVertex.property("error_vector", it) }
+			"percent_zero_errors_odds", percent_zeros_odd_indices)
 
 			if (fields[3].length() > 5) {
 				motherUuid = fields[3][4..39]
@@ -308,7 +270,7 @@ loadCsv = { propertiesFileName, csvFilePath ->
 println("The necessary functions are now loaded.")
 
 println("To load a CSV file use a call like:\n\
-\tgraph = loadCsv('genome_db.properties', '/Research/RSWN/lexicase/data0.csv.gz')\n\
+\tgraph = loadCsv('genome_db.properties', '/Research/RSWN/lexicase/data2.csv.gz')\n\
 \tg = graph.traversal()\n\
 where you replace 'genome_db.properties' with the name of your properties file\n\
 and '/Research/RSWN/lexicase/data0.csv.gz' with the path to your compressed CSV file.")
