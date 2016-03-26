@@ -66,8 +66,8 @@ generate_raw_error_vector_file = { node, dir_name ->
 generate_error_vector_diff_file = { node, base_name ->
   errors = node.value('error_vector').split(",")
   new File("${dir_name}/error_vector_diff_file.txt").withWriter { out ->
-    errors.each { error ->
-      out << error << "\n"
+    errors.eachWithIndex { error, idx ->
+      out << "TestCase" << idx << "\t" << error << "\n"
     }
   }
 }
@@ -77,12 +77,12 @@ generate_error_vector_even_odd_file = { node, base_name ->
   new File("${dir_name}/error_vector_even_odd_file.txt").withWriter { out ->
     errors.eachWithIndex { error, idx ->
       if (idx % 2 == 0) {
-        out << error << "\n"
+	out << "TestCase" << idx << "\t" << error << "\n"
       }
     }
     errors.eachWithIndex { error, idx ->
       if (idx % 2 == 1) {
-        out << error << "\n"
+	out << "TestCase" << idx << "\t" << error << "\n"
       }
     }
   }
