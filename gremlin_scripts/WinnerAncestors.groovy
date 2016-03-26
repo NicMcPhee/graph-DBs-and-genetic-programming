@@ -1,5 +1,4 @@
-// Uncomment these first two lines if you're running this for the first time and don't have the
-// graph loaded.
+// Comment for color
 import java.io.*
 
 // The target node line:format
@@ -10,6 +9,21 @@ void printNode(fr, maxError, n, color_map) {
 
 	// Make array of stored string
 	total_error_vector = n['ev'].split(",")
+
+	zero_one_errors = total_error_vector.collect{ item ->
+		if (item.size() > 6) { v = 1 } 
+		else { 
+			v = item.toInteger(); 
+			if (v > 0) { v = 1 }
+		}
+		v
+	}
+
+	(red, green, blue) = color_map[zero_one_errors]
+	//println([red, green, blue])
+
+	// For RBM coloring
+	color = String.format("\"#%02x%02x%02x\"", red, green, blue)
 
 	// Limit total errors if above the ceiling limit
 	error_ceiling = 100000
@@ -25,27 +39,7 @@ void printNode(fr, maxError, n, color_map) {
 			else { odd_total_error += item.toInteger() }
 		}
 	}*/
-	zero_one_errors = total_error_vector.collect{ item ->
-		if (item.size() > 6) { v = 1 } 
-		else { 
-			v = item.toInteger(); 
-			if (v > 0) { v = 1 }
-		}
-		v
-	}
-
-	(red, green, blue) = color_map[zero_one_errors]
-	//println([red, green, blue])
-	num_zeros = 0
-	total_error_vector.eachWithIndex{ item, index ->
-		if (item.size() < 6 && item.toInteger() == 0) {
-			num_zeros+= 1
-			//println("found one")
-		}
-	}
-	per_num_zeros = num_zeros/200
-	//println("The percentage value is "+ per_num_zeros)
-
+	
 	 if (maxError < error_ceiling) {
 		error_ceiling = maxError
 	 }
@@ -54,22 +48,21 @@ void printNode(fr, maxError, n, color_map) {
 		total_error = error_ceiling
 	 }
 
+	// Assigning hue based on percentage of zeros (single coloring)
+	/*
+	num_zeros = 0
+	total_error_vector.eachWithIndex{ item ->
+		if (item.size() < 6 && item.toInteger() == 0) { num_zeros += 1 }
+	}
+	per_num_zeros = num_zeros/200
 
-	// For bad hash function coloring
-	//color = String.format("\"#%02x%02x%02x\"", n['red'], n['green'], n['blue'])
-
-	// For RBM coloring
-	color = String.format("\"#%02x%02x%02x\"", red, green, blue)
-
-	// Assigning the hue of a node to be the total_error (single coloring)
-/*
-	 hue = 1.0/6 + (5.0/6) * (1 - per_num_zeros)
+ 	 hue = 1.0/6 + (5.0/6) * (1 - per_num_zeros)
 	 shade = 1.0/6 + (5.0/6)*(1-Math.log(total_error+1)/Math.log(error_ceiling+1))
 	 combo = "${hue} 1 ${shade}"
 	 color = "\"${combo}\""
-*/
+	*/
 
-	// Assigning hue based on percentage of zeros
+	// Assigning hue based on percentage of zeros (dual coloring)
 	 /*hue = 1.0/6 + (5.0/6) * (1 - n['pze_even'])
 	 shade = 1-(Math.log(even_total_error+1)/Math.log(error_ceiling+1))
 	 otherhue = 1.0/6 + (5.0/6) * (1 - n['pze_odd'])
@@ -79,8 +72,6 @@ void printNode(fr, maxError, n, color_map) {
 	*/
      name = '"' + n['id'] + '"'
      
-	 // For nodes to have same colored borders
-     // params = "[shape=rectangle, color="+color+ ", width="
      params = "[shape=rectangle, width="
      params = params + width + ", height="
 	 params = params + height + ", style=filled, fillcolor="
@@ -178,14 +169,14 @@ loadAncestry = { propertiesFileName, csvFilePath, filter, lexicase, successful -
 	graph = TitanFactory.open(propertiesFileName)
 	g = graph.traversal()
 
-	//run_uuid = g.V().has('generation', 0).values('run_uuid').next()
+	run_uuid = g.V().has('generation', 0).values('run_uuid').next()
 
 	ancestor_list = []
 	if (successful){
 		g.V().has('total_error', 0).fill(ancestor_list)
 	} else {
 		winners = []
-		g.V().has('total_error', 0).fill(winners)
+		g.V().has('total_error', 0).has('run_uuid', run_uuid).fill(winners)
 		gen300 = []
 		g.V().has('generation', 300).has('run_uuid', run_uuid).fill(gen300)
 		ancestor_list = winners+gen300
@@ -260,7 +251,7 @@ println("Java Import is loaded!")
 //loadAncestry = { propertiesFileName, csvFilePath, filter, lexicase, successful
 println("To load a CSV file use a call like:\n\
 \tloadAncestry('genome_db.properties', '/Research/RSWN/lexicase/run2_RBM_color_full_30000.dot', false, true, false)\n\
-\tloadAncestry('genome_db.properties', '/Research/RSWN/recursive-variance-v3/run5_RBM_color_full.dot')\n\
+\tloadAncestry('autoconstruction_db.properties', '/Research/RSWN/recursive-variance-v3/run5_RBM_color_filtered.dot', true, false, true)\n\
 where you replace 'genome_db.properties' with the name of your properties file\n\
 and '/Research/RSWN/lexicase/run2_RBM_color_full.dot' with the path to your output file.\n\
 filter is a boolean for being filtered (true) or not (false). \n\
