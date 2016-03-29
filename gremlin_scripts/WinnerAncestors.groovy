@@ -4,6 +4,7 @@ import java.io.*
 // The target node line:format
 //	"87:719" [shape=rectangle, width=4, style=filled, fillcolor="0.5 1 1"];
 void printNode(fr, maxError, n, color_map) {
+println("Printing nodes.")
      width = n['ns']/50
      height = n['nac']/10
 
@@ -83,13 +84,13 @@ void printNode(fr, maxError, n, color_map) {
 
 // The target edge line format:
 //	"82:393" -> "83:619";
-void printEdge(fr, e, successful, filter) {
+void printEdge(fr, e, lexicase, filter) {
 	// Add one and multiply by four to make the line visible
 	edgeWidth = (1 - e['DL_dist']/1000.0)*5
 	
 	if (edgeWidth <= 0.5) { edgeWidth = 0.5 }
 
-	if(!successful) {
+	if(!lexicase) {
 		if (e['type'] == "mother") { 
 			c = "gray40" 
 			sty = "solid"
@@ -170,6 +171,8 @@ loadAncestry = { propertiesFileName, csvFilePath, filter, lexicase, successful -
 	g = graph.traversal()
 
 	run_uuid = g.V().has('generation', 0).values('run_uuid').next()
+	//success_run_uuid = 'b44020ab-f1e4-458f-86e2-a24c0d5c0d20'
+	//failed_run_uuid = '581aafba-32de-437c-a0f2-79a48c6b37c6'
 
 	ancestor_list = []
 	if (successful){
@@ -185,10 +188,15 @@ loadAncestry = { propertiesFileName, csvFilePath, filter, lexicase, successful -
 	if (lexicase) {
 		anc = get_ancestors_of_lexicase_run(300, ancestor_list, filter)
 	} else {
-		anc = get_ancestors_of_auto_run(300, ancestor_list, filter)
+		anc = get_ancestors_of_auto_run(1000, ancestor_list, filter)
+	}
+println(anc)
+	if (successful){
+		maxGen = anc.V().values('generation').max().next()
+	} else {
+		maxGen = 300
 	}
 
-	maxGen = anc.V().values('generation').max().next()
 	maxError = anc.V().values('total_error').max().next()
 
 	(0..maxGen).each { gen -> anc.V().has('generation', gen).sideEffect { edges = it.get().edges(Direction.OUT); num_ancestry_children = edges.collect { it.inVertex() }.unique().size(); it.get().property('num_ancestry_children', num_ancestry_children) }.iterate(); graph.tx().commit(); println gen }
@@ -213,9 +221,9 @@ loadAncestry = { propertiesFileName, csvFilePath, filter, lexicase, successful -
 		select('v').values('total_error').as('te').
 		select('v').values('num_ancestry_children').as('nac').
 		select('v').values('error_vector').as('ev').
-		select('v').values('percent_zero_errors_evens').as('pze_even').
-		select('v').values('percent_zero_errors_odds').as('pze_odd').
-		select('id', 'te', 'ns', 'nac', 'ev', 'pze_even', 'pze_odd').
+		//select('v').values('percent_zero_errors_evens').as('pze_even').
+		//select('v').values('percent_zero_errors_odds').as('pze_odd').
+		select('id', 'te', 'ns', 'nac', 'ev').//, 'pze_even', 'pze_odd').
 		sideEffect{ printNode(fr, maxError, it.get(), color_map) }.
 		iterate(); null
 
@@ -229,7 +237,7 @@ loadAncestry = { propertiesFileName, csvFilePath, filter, lexicase, successful -
 		select('e').values('DL_dist').as('DL_dist').
 		select('e').values('parent_type').as('type').
 		select('parent', 'child', 'gos', 'ns', 'nc', 'DL_dist', 'type').
-		sideEffect{ printEdge(fr, it.get(), successful, filter) }.
+		sideEffect{ printEdge(fr, it.get(), lexicase, filter) }.
 		iterate(); null
 
 	// Add all the "rank=same" entries to line up the generations, e.g.,
@@ -250,8 +258,8 @@ loadAncestry = { propertiesFileName, csvFilePath, filter, lexicase, successful -
 println("Java Import is loaded!")
 //loadAncestry = { propertiesFileName, csvFilePath, filter, lexicase, successful
 println("To load a CSV file use a call like:\n\
-\tloadAncestry('genome_db.properties', '/Research/RSWN/lexicase/run2_RBM_color_full_30000.dot', false, true, false)\n\
-\tloadAncestry('autoconstruction_db.properties', '/Research/RSWN/recursive-variance-v3/run5_RBM_color_filtered.dot', true, false, true)\n\
+For successful lexicase w/out filtering: \tloadAncestry('genome_db.properties', '/Research/RSWN/lexicase/run0_RBM_color_filtered_30000.dot', true, true, true)\n\
+For successful auto w/ filtering: \tloadAncestry('autoconstruction_db.properties', '/Research/RSWN/recursive-variance-v3/run5_RBM_color_filtered_60000.dot', true, false, true)\n\
 where you replace 'genome_db.properties' with the name of your properties file\n\
 and '/Research/RSWN/lexicase/run2_RBM_color_full.dot' with the path to your output file.\n\
 filter is a boolean for being filtered (true) or not (false). \n\
