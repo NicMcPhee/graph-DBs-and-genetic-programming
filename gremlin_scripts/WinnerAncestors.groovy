@@ -258,7 +258,7 @@ println(anc)
 println("Java Import is loaded!")
 //loadAncestry = { propertiesFileName, csvFilePath, filter, lexicase, successful
 println("To load a CSV file use a call like:\n\
-For successful lexicase w/out filtering: \tloadAncestry('genome_db.properties', '/Research/RSWN/lexicase/run0_RBM_color_filtered_30000.dot', true, true, true)\n\
+For successful lexicase w/ filtering: \tloadAncestry('genome_db.properties', '/Research/RSWN/lexicase/run0_RBM_color_filtered_30000.dot', true, true, true)\n\
 For successful auto w/ filtering: \tloadAncestry('autoconstruction_db.properties', '/Research/RSWN/recursive-variance-v3/run5_RBM_color_filtered_60000.dot', true, false, true)\n\
 where you replace 'genome_db.properties' with the name of your properties file\n\
 and '/Research/RSWN/lexicase/run2_RBM_color_full.dot' with the path to your output file.\n\
