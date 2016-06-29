@@ -244,7 +244,7 @@ loadCsv = { propertiesFileName, csvFilePath ->
 
 	graph = TitanFactory.open(propertiesFileName)
 
-	//createPropertiesAndKeys(graph)
+	createPropertiesAndKeys(graph)
 
 	path = FileSystems.getDefault().getPath(csvFilePath)
 	runFileName = path.getFileName().toString()
