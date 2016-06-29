@@ -523,7 +523,7 @@ Start Tuesday January 26, 2016 : End Wednesday January 27, 2016
 	- Get a larger range of colors for dot pdf
 	- Remove the mother and father distintion
 	- May have to play with vertical alignment of multiple graphs
-	- Have it determin the last generation - NOT HARDCODED
+	- Have it determine the last generation - NOT HARDCODED
 	- Have function for making ancestry graph (takes in graph and run uuids) and seperate function for creating dot file 
 
 ***********************************************************************************************************************************
@@ -620,7 +620,18 @@ To simplify working with the 4 run database I figured out what the 4 run UUIDs m
 * Figure out which test cases are which to apply the dual coloring
 
 
+***********************************************************************************************************************************
 
+# March 25
+
+* The RSWN runs from thelmuth's dissertation.
+  * Winners:
+	- data0, 1, 5, 6, 8, 90, 91, 93, 95, 97, 99
+  * Non-Winners:
+	- data2, 3, 4, 7, 9, 92, 94, 96, 98
+
+* Ghost Script! Used to resize pdfs:
+gs -sDEVICE=pdfwrite -dFIXEDMEDIA -dPDFFitPage -dCompatibilityLevel=1.4 -dPDFSETTINGS=/screen -sPAPERSIZE=letter -dNOPAUSE -dQUIET -dBATCH -sOutputFile=output_file.pdf input_file.pdf
 
 
 
