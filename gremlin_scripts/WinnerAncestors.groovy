@@ -20,11 +20,11 @@ println("Printing nodes.")
 		v
 	}
 
-	(red, green, blue) = color_map[zero_one_errors]
+	// (red, green, blue) = color_map[zero_one_errors]
 	//println([red, green, blue])
 
 	// For RBM coloring
-	color = String.format("\"#%02x%02x%02x\"", red, green, blue)
+	// color = String.format("\"#%02x%02x%02x\"", red, green, blue)
 
 	// Limit total errors if above the ceiling limit
 	error_ceiling = 100000
@@ -50,9 +50,8 @@ println("Printing nodes.")
 	 }
 
 	// Assigning hue based on percentage of zeros (single coloring)
-	/*
 	num_zeros = 0
-	total_error_vector.eachWithIndex{ item ->
+	total_error_vector.each{ item ->
 		if (item.size() < 6 && item.toInteger() == 0) { num_zeros += 1 }
 	}
 	per_num_zeros = num_zeros/200
@@ -61,7 +60,6 @@ println("Printing nodes.")
 	 shade = 1.0/6 + (5.0/6)*(1-Math.log(total_error+1)/Math.log(error_ceiling+1))
 	 combo = "${hue} 1 ${shade}"
 	 color = "\"${combo}\""
-	*/
 
 	// Assigning hue based on percentage of zeros (dual coloring)
 	 /*hue = 1.0/6 + (5.0/6) * (1 - n['pze_even'])
@@ -224,7 +222,8 @@ println(anc)
 		//select('v').values('percent_zero_errors_evens').as('pze_even').
 		//select('v').values('percent_zero_errors_odds').as('pze_odd').
 		select('id', 'te', 'ns', 'nac', 'ev').//, 'pze_even', 'pze_odd').
-		sideEffect{ printNode(fr, maxError, it.get(), color_map) }.
+		// sideEffect{ printNode(fr, maxError, it.get(), color_map) }.
+		 sideEffect{ printNode(fr, maxError, it.get(), null) }.
 		iterate(); null
 
 	// Process all the edges
