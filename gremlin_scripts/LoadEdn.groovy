@@ -171,11 +171,14 @@ addIndividualToGraph = { individual, graph, traversal ->
   /* these are the keys that we care about in the map */
   // TODO: what happens when the map is missing the (on of) the keys we want?
 
-  uuid = individual[Keyword.newKeyword("uuid")].toString
-  generation = individual[Keyword.newKeyword("generation")]
+  uuid              = individual[Keyword.newKeyword("uuid")].toString
+  generation        = individual[Keyword.newKeyword("generation")]
   genetic_operators = Printers.printString(individual[Keyword.newKeyword("genetic-operators")])
-  plush_genome = Printers.printString(individual[Keyword.newKeyword("plush-genome")])
+  plush_genome      = Printers.printString(individual[Keyword.newKeyword("plush-genome")])
+  total_error       = individual[Keyword.newKeyword("total-error")]
+  errors            = Printers.printString(individual[Keyword.newKeyword("errors")])
 
+  // add the vertex
   newVertex = graph.addVertex (
     label, "individual",
     // "run_uuid", runUUID, <-- why would we want the not-very-useful run UUID on *every node*!
@@ -187,14 +190,22 @@ addIndividualToGraph = { individual, graph, traversal ->
     "genetic_operators", genetic_operators,
     // "plush_genome_size" <-- TODO add this to EDN export
     "plush_genome", plush_genome,
-    // TODO other fields
+    "total_error", total_error,
+    "error_vector", errors
   )
 
-  // TODO: add vertex
-
-  // TODO: add edges to parents
+  parentUUIDs = individual[Keyword.newKeyword("parent-uuids")]
+  if ( null != parentUUIDs ){
+    parentUUIDs.each { uuid ->
+      parent = g.V().has("uuid", parentUUIDs[0]).next()
+      edge = parent.addEdge('parent_of', newVertex)
+    }
+    // edge0.property("parent_type", "mother")
+  }
 
 }
+
+
 parseEdnFile = { graph, zippedEdnFile, runUUID ->
   g = graph.traversal()
 
@@ -209,6 +220,14 @@ parseEdnFile = { graph, zippedEdnFile, runUUID ->
 
   individualTag = Tag.Tag("clojush", "individual")
 
+  // loopingCount is increased when we add an individual to the graph
+  // we commit to the graph every time we reach loopingMax
+  uncommittedIndividuals = 0
+  final maxUncommittedIndividuals = 1000
+
+  // A count of all items added to the graph
+  totalCount = 0
+
   while ((current = next()) != Parser.END_OF_INPUT) {
 
     // Question: if datafile has a non-tagged item in the stream
@@ -217,11 +236,22 @@ parseEdnFile = { graph, zippedEdnFile, runUUID ->
     // every time and crash gracefully/display an error?
     if ( current.getTag() == individualK) {
       addIndividualToGraph(current.getValue(), g)
+      uncommittedIndividuals += 1
+      totalCount += 1
     }
     else {
       println("skipped item with unknown tag: ${current.getTag()}")
     }
+
+    if ((uncommittedIndividuals % maxUncommittedIndividuals) == 0){
+      println("Commiting at: ${totalCount}")
+      graph.tx().commit()
+      uncommittedIndividuals = 0
+    }
   }
+
+  graph.tx().commit()
+
 }
 
 
