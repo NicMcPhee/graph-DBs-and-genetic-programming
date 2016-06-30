@@ -271,22 +271,27 @@ parseEdnFile = { graph, zippedEdnFile, runUUID ->
 addNumSelections = { graph, maxGen ->
   g = graph.traversal()
 
-  (0..maxGen).each { gen -> g.V().has('generation', gen).sideEffect {
-             num_selections = it.get().edges(Direction.OUT).size();
-             it.get().property('num_selections', num_selections) }.iterate();
-         graph.tx().commit();
-         println gen }
+  (0..maxGen).each { gen ->
+    g.V().has('generation', gen).sideEffect
+    {
+      num_selections = it.get().edges(Direction.OUT).size();
+      it.get().property('num_selections', num_selections)
+    }.iterate();
+    graph.tx().commit();
+    println gen }
 }
 
 addNumChildren = { graph, maxGen ->
   g = graph.traversal()
 
-  (0..maxGen).each { gen -> g.V().has('generation', gen).sideEffect {
-             edges = it.get().edges(Direction.OUT);
-             num_children = edges.collect { it.inVertex() }.unique().size();
-             it.get().property('num_children', num_children) }.iterate();
-         graph.tx().commit();
-         println gen }
+  (0..maxGen).each { gen ->
+    g.V().has('generation', gen).sideEffect {
+      edges = it.get().edges(Direction.OUT);
+      num_children = edges.collect { it.inVertex() }.unique().size();
+      it.get().property('num_children', num_children)
+    }.iterate();
+    graph.tx().commit();
+    println gen }
 }
 
 genome_items = { node ->
