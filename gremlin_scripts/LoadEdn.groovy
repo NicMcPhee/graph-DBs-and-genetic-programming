@@ -218,7 +218,7 @@ parseEdnFile = { graph, zippedEdnFile, runUUID ->
   parser = Parsers.newParser(defaultConfiguration());
   next = { p.nextValue(parsable) }
 
-  individualTag = Tag.Tag("clojush", "individual")
+  individualTag = Tag.newTag("clojush", "individual")
 
   // loopingCount is increased when we add an individual to the graph
   // we commit to the graph every time we reach loopingMax
