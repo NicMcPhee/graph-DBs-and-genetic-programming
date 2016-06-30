@@ -6,6 +6,19 @@ import java.nio.file.FileSystems
 
 import org.codehaus.groovy.runtime.MethodRankHelper
 
+import static us.bpsm.edn.parser.Parsers.defaultConfiguration;
+import us.bpsm.edn.*;
+import us.bpsm.edn.parser.*;
+import us.bpsm.edn.printer.*;
+
+printDebugInfo = true
+
+debugStatus = { str ->
+  if (printDebugInfo){
+    println("debug: ${str}")
+  }
+}
+
 // Based on an algorithm by maythesource.com:
 // http://stackoverflow.com/a/15905916
 fastSplit = { s ->
@@ -67,6 +80,7 @@ createPropertiesAndKeys = { graph ->
   //println("Done with setting keys.")
 }
 
+/*
 parseCsvFile = { graph, zippedCsvFile, runUUID ->
   g = graph.traversal()
 
@@ -91,10 +105,10 @@ parseCsvFile = { graph, zippedCsvFile, runUUID ->
       fields = this.fastSplit(line)
       // This only makes sense if we're using is-random-replacement
       // (and it's in location 9).
-      /*
-      if (fields[9] == "") { is_rand = true }
-      else { is_rand = fields[9].toBoolean()}
-      */
+      
+      // if (fields[9] == "") { is_rand = true }
+      // else { is_rand = fields[9].toBoolean()}
+      
 
       // The case to int here will be bad if the error values are ever
       // actually floating point values, but it works for the integer values
@@ -158,6 +172,7 @@ parseCsvFile = { graph, zippedCsvFile, runUUID ->
 
   return [maxGen, successful]
 }
+*/
 
 /* Takes an individual represented as a map from parsed EDN.
  * Takes a graph
@@ -171,10 +186,10 @@ addIndividualToGraph = { individual, graph, traversal ->
   /* these are the keys that we care about in the map */
   // TODO: what happens when the map is missing the (on of) the keys we want?
 
-  uuid              = individual[Keyword.newKeyword("uuid")].toString
+  uuid              = individual[Keyword.newKeyword("uuid")].toString()
   generation        = individual[Keyword.newKeyword("generation")]
   genetic_operators = Printers.printString(individual[Keyword.newKeyword("genetic-operators")])
-  plush_genome      = Printers.printString(individual[Keyword.newKeyword("plush-genome")])
+  plush_genome      = Printers.printString(individual[Keyword.newKeyword("genome")])
   total_error       = individual[Keyword.newKeyword("total-error")]
   errors            = Printers.printString(individual[Keyword.newKeyword("errors")])
   successful        = total_error == 0
@@ -192,8 +207,7 @@ addIndividualToGraph = { individual, graph, traversal ->
     // "plush_genome_size" <-- TODO add this to EDN export
     "plush_genome", plush_genome,
     "total_error", total_error,
-    "error_vector", errors
-  )
+    "error_vector", errors)
 
   parentUUIDs = individual[Keyword.newKeyword("parent-uuids")]
   if ( null != parentUUIDs ){
@@ -214,13 +228,17 @@ parseEdnFile = { graph, zippedEdnFile, runUUID ->
 
   //println("We're in the parse section!")
 
-  fileStream = new FileInputStream(zippedCsvFile)
+  fileStream = new FileInputStream(zippedEdnFile)
   gzipStream = new GZIPInputStream(fileStream)
   inputReader = new InputStreamReader(gzipStream)
-  parsable = Parsers.newParsable(new BufferedReader(inputReader))
+  bufferedReader = new BufferedReader(inputReader)
+  // debugStatus("BufferedReader is Readable: ${bufferedReader instanceof java.lang.Readable}")
+  // parsable = Parsers.newParsable(bufferedReader as Readable)
+  parsable = Parsers.newParseable(bufferedReader)
   parser = Parsers.newParser(defaultConfiguration());
-  next = { p.nextValue(parsable) }
+  next = { parser.nextValue(parsable) }
 
+  debugStatus("opened file for parsing")
   individualTag = Tag.newTag("clojush", "individual")
 
   // loopingCount is increased when we add an individual to the graph
@@ -235,13 +253,14 @@ parseEdnFile = { graph, zippedEdnFile, runUUID ->
   largestGeneration = 0
 
   while ((current = next()) != Parser.END_OF_INPUT) {
+    // debugStatus("in the while loop")
 
     // Question: if datafile has a non-tagged item in the stream
     // we will crash with a "getValue() doesn't exist for type
     // map" or something like that. Should we explicitly check that
     // every time and crash gracefully/display an error?
-    if ( current.getTag() == individualK) {
-      (generation, successful) = addIndividualToGraph(current.getValue(), g)
+    if ( current.getTag() == individualTag) {
+      (generation, successful) = addIndividualToGraph(current.getValue(), graph, g)
       uncommittedIndividuals += 1
       totalCount += 1
       if ( successful ) {
@@ -351,30 +370,37 @@ addRunNode = { graph, runUUID, runFileName, successful, maxGen ->
   graph.tx().commit()
 }
 
-loadEdn = { propertiesFileName, EdnDataFile ->
+loadEdn = { propertiesFileName, ednDataFile ->
 
+  debugStatus("setting clock")
   start = System.currentTimeMillis()
 
   // TODO get the following in the run output
+  debugStatus("generating run UUID")
   runUUID = java.util.UUID.randomUUID()
 
+  debugStatus("creating database")
+  // TODO add check for missing file. The error that TitanFactory gives is non-obvious
   graph = TitanFactory.open(propertiesFileName)
 
+  debugStatus("setting properties and keys on graph")
   createPropertiesAndKeys(graph)
 
-  // TODO (maxGen, successful) = parseCsvFile(graph, csvFilePath, runUUID)
-  (maxGen, successful) = parseEdnFile(graph, EdnDataFile, runUUID)
+  debugStatus("parsing EDN file")
+  (maxGen, successful) = parseEdnFile(graph, ednDataFile, runUUID)
 
   // TODO addLevenshteinDistances(graph, maxGen)
   // TODO addMinimalContributionProperty(graph, maxGen)
 
+  debugStatus("adding num selections and num children")
   addNumSelections(graph, maxGen)
   addNumChildren(graph, maxGen)
 
   // If we put this before addNumSelections, etc., can we pull
   // maxGen out of the run node and not need to pass it as an
   // argument to those functions?
-  path = FileSystems.getDefault().getPath(csvFilePath)
+  debugStatus("adding run node")
+  path = FileSystems.getDefault().getPath(ednDataFile)
   runFileName = path.getFileName().toString()
   addRunNode(graph, runUUID, runFileName, successful, maxGen)
 
