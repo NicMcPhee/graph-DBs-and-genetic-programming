@@ -177,6 +177,7 @@ addIndividualToGraph = { individual, graph, traversal ->
   plush_genome      = Printers.printString(individual[Keyword.newKeyword("plush-genome")])
   total_error       = individual[Keyword.newKeyword("total-error")]
   errors            = Printers.printString(individual[Keyword.newKeyword("errors")])
+  successful        = total_error == 0
 
   // add the vertex
   newVertex = graph.addVertex (
@@ -200,8 +201,10 @@ addIndividualToGraph = { individual, graph, traversal ->
       parent = g.V().has("uuid", parentUUIDs[0]).next()
       edge = parent.addEdge('parent_of', newVertex)
     }
-    // edge0.property("parent_type", "mother")
+    // edge0.property("parent_type", "mother") //<-- We don't need parent types do we?
   }
+
+  return [generation, successful]
 
 }
 
@@ -228,6 +231,9 @@ parseEdnFile = { graph, zippedEdnFile, runUUID ->
   // A count of all items added to the graph
   totalCount = 0
 
+  successfulRun = false
+  largestGeneration = 0
+
   while ((current = next()) != Parser.END_OF_INPUT) {
 
     // Question: if datafile has a non-tagged item in the stream
@@ -235,9 +241,15 @@ parseEdnFile = { graph, zippedEdnFile, runUUID ->
     // map" or something like that. Should we explicitly check that
     // every time and crash gracefully/display an error?
     if ( current.getTag() == individualK) {
-      addIndividualToGraph(current.getValue(), g)
+      (generation, successful) = addIndividualToGraph(current.getValue(), g)
       uncommittedIndividuals += 1
       totalCount += 1
+      if ( successful ) {
+        successfulRun = true
+      }
+      if ( generation > largestGeneration ){
+        largestGeneration = generation
+      }
     }
     else {
       println("skipped item with unknown tag: ${current.getTag()}")
@@ -249,9 +261,10 @@ parseEdnFile = { graph, zippedEdnFile, runUUID ->
       uncommittedIndividuals = 0
     }
   }
-
+  // a final commit
   graph.tx().commit()
 
+  return [largestGeneration, successfulRun]
 }
 
 
@@ -350,8 +363,8 @@ loadEdn = { propertiesFileName, EdnDataFile ->
   // TODO addLevenshteinDistances(graph, maxGen)
   // TODO addMinimalContributionProperty(graph, maxGen)
 
-  // TODO addNumSelections(graph, maxGen)
-  // TODO addNumChildren(graph, maxGen)
+  addNumSelections(graph, maxGen)
+  addNumChildren(graph, maxGen)
 
   // If we put this before addNumSelections, etc., can we pull
   // maxGen out of the run node and not need to pass it as an
