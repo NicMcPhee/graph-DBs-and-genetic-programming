@@ -374,9 +374,9 @@ loadEdn = { propertiesFileName, EdnDataFile ->
   // If we put this before addNumSelections, etc., can we pull
   // maxGen out of the run node and not need to pass it as an
   // argument to those functions?
-  // TODO path = FileSystems.getDefault().getPath(csvFilePath)
-  // TODO runFileName = path.getFileName().toString()
-  // TODO addRunNode(graph, runUUID, runFileName, successful, maxGen)
+  path = FileSystems.getDefault().getPath(csvFilePath)
+  runFileName = path.getFileName().toString()
+  addRunNode(graph, runUUID, runFileName, successful, maxGen)
 
   println "Loading took (ms): " + (System.currentTimeMillis() - start)
 
