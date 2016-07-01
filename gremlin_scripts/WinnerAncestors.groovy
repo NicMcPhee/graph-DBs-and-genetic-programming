@@ -54,7 +54,8 @@ println("Printing nodes.")
 	total_error_vector.each{ item ->
 		if (item.size() < 6 && item.toInteger() == 0) { num_zeros += 1 }
 	}
-	per_num_zeros = num_zeros/200
+	// per_num_zeros = num_zeros/200 <-- should be length of error vector
+	per_num_zeros = num_zeros/10
 
  	 hue = 1.0/6 + (5.0/6) * (1 - per_num_zeros)
 	 shade = 1.0/6 + (5.0/6)*(1-Math.log(total_error+1)/Math.log(error_ceiling+1))
@@ -84,9 +85,11 @@ println("Printing nodes.")
 //	"82:393" -> "83:619";
 void printEdge(fr, e, lexicase, filter) {
 	// Add one and multiply by four to make the line visible
-	edgeWidth = (1 - e['DL_dist']/1000.0)*5
+	// edgeWidth = (1 - e['DL_dist']/1000.0)*5
 	
-	if (edgeWidth <= 0.5) { edgeWidth = 0.5 }
+	// if (edgeWidth <= 0.5) { edgeWidth = 0.5 }
+
+  edgeWidth = 1
 
 	if(!lexicase) {
 		if (e['type'] == "mother") { 
@@ -168,13 +171,16 @@ loadAncestry = { propertiesFileName, csvFilePath, filter, lexicase, successful -
 	graph = TitanFactory.open(propertiesFileName)
 	g = graph.traversal()
 
-	run_uuid = g.V().has('generation', 0).values('run_uuid').next()
+	// run_uuid = g.V().has('generation', 0).values('run_uuid').next()
+	run_uuid = g.V().hasLabel('run').values('run_uuid').next()
 	//success_run_uuid = 'b44020ab-f1e4-458f-86e2-a24c0d5c0d20'
 	//failed_run_uuid = '581aafba-32de-437c-a0f2-79a48c6b37c6'
 
 	ancestor_list = []
 	if (successful){
 		g.V().has('total_error', 0).fill(ancestor_list)
+    println("length of ancestor list: ${ancestor_list.size}")
+    println("number with 0 error " + g.V().has('total_error', 0).count().next())
 	} else {
 		winners = []
 		g.V().has('total_error', 0).has('run_uuid', run_uuid).fill(winners)
@@ -182,6 +188,7 @@ loadAncestry = { propertiesFileName, csvFilePath, filter, lexicase, successful -
 		g.V().has('generation', 300).has('run_uuid', run_uuid).fill(gen300)
 		ancestor_list = winners+gen300
 	}
+  println("length of ancestor list: ${ancestor_list.size}")
 
 	if (lexicase) {
 		anc = get_ancestors_of_lexicase_run(300, ancestor_list, filter)
@@ -197,7 +204,13 @@ println(anc)
 
 	maxError = anc.V().values('total_error').max().next()
 
-	(0..maxGen).each { gen -> anc.V().has('generation', gen).sideEffect { edges = it.get().edges(Direction.OUT); num_ancestry_children = edges.collect { it.inVertex() }.unique().size(); it.get().property('num_ancestry_children', num_ancestry_children) }.iterate(); graph.tx().commit(); println gen }
+	(0..maxGen).each { gen ->
+    anc.V().has('generation', gen).sideEffect {
+      edges = it.get().edges(Direction.OUT);
+      num_ancestry_children = edges.collect { it.inVertex() }.unique().size();
+      it.get().property('num_ancestry_children', num_ancestry_children) }.iterate();
+    graph.tx().commit();
+    println gen }
 
 	// Open the DOT file, print the DOT header info.
 	fr = new java.io.FileWriter(csvFilePath)
@@ -233,9 +246,10 @@ println(anc)
 		select('e').outV().values('uuid').as('parent').
 		select('e').inV().values('uuid').as('child').
 		select('e').inV().values('genetic_operators').as('gos').
-		select('e').values('DL_dist').as('DL_dist').
-		select('e').values('parent_type').as('type').
-		select('parent', 'child', 'gos', 'ns', 'nc', 'DL_dist', 'type').
+		// select('e').values('DL_dist').as('DL_dist').
+		// select('e').values('parent_type').as('type').
+		// select('parent', 'child', 'gos', 'ns', 'nc', 'DL_dist', 'type').
+		select('parent', 'child', 'gos', 'ns', 'nc').
 		sideEffect{ printEdge(fr, it.get(), lexicase, filter) }.
 		iterate(); null
 
