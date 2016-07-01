@@ -212,7 +212,7 @@ addIndividualToGraph = { individual, graph, traversal ->
   parentUUIDs = individual[Keyword.newKeyword("parent-uuids")]
   if ( null != parentUUIDs ){
     parentUUIDs.each { uuid ->
-      parent = g.V().has("uuid", parentUUIDs[0]).next()
+      parent = g.V().has("uuid", uuid).next()
       edge = parent.addEdge('parent_of', newVertex)
     }
     // edge0.property("parent_type", "mother") //<-- We don't need parent types do we?
