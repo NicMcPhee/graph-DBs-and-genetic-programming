@@ -1,5 +1,8 @@
 // Comment for color
 import java.io.*
+import org.apache.tinkerpop.gremlin.process.traversal.P 
+
+// SharedGenes should be in the classpath
 
 // The target node line:format
 //	"87:719" [shape=rectangle, width=4, style=filled, fillcolor="0.5 1 1"];
@@ -165,6 +168,50 @@ def get_ancestors_of_lexicase_run (max_gen, ancestor_list, filter) {
 	return anc
 }
 
+/* There are two different kinds of filters that we apply to our alternation only graph.
+ * First, we can walk up the tree and skip parents who didn't contribute genetic information
+ * to its immediate child. Alternatively, we can work our way up the tree and remove any individual
+ * who doesn't share any genes with the winning individual whose line we are chasing....
+ * Hmmm... that would require building a tree for each of the winners and then chasing merging them
+ * back together.
+ */
+def get_genetic_ancestors_of_lexicase_run (max_gen, ancestor_list ){
+
+  // sharedGenes = new SharedGenes()
+  hasWinnerGenes = new GenePool(ancestor_list)
+
+  println("debug: building ancestry tree")
+  // ancG = inject(ancestor_list).unfold().repeat(__.inE().as('edge')
+  //                                              .outV().as('parent')
+  //                                              .where('parent', hasWinnerGenes)
+  //                                              .select('edge')
+  //                                              .subgraph('sg')
+  //                                              .outV().dedup()).cap('sg').next()
+  ancG = inject(ancestor_list).unfold().repeat(__.inE()
+                                               .filter {e -> hasWinnerGenes.test(e.get().vertex(IN))}
+                                               .subgraph('sg')
+                                               .outV().dedup()).cap('sg').next()
+    // parentGenome = parser.nextValue(Parsers.newParseable(it.get().vertex(IN).value('plush_genome')))
+
+  // ancG = inject(ancestor_list).unfold().repeat(__.as('child').values('plush_genome').as('child_genome')
+  //                                              .select('child').inE()
+  //                                              .subgraph('sg').outV().dedup()).times(max_gen).cap('sg').next()
+  // ancG = inject(ancestor_list).unfold().repeat(__.as('child')
+  //                                              .values('plush_genome').as('child_genome')
+  //                                              .select('child').inE().as('child_inE')
+  //                                              .outV().dedup().as('parent')
+  //                                              .values('plush_genome').as('parent_genome')
+  //                                              .where('child_genome', new P(sharedGenes, 'parent_genome'))
+  //                                              .select('child_inE').subgraph('sg').outV()).cap('sg').next()
+  // ancG = inject(ancestor_list).unfold().repeat(__.as('child').values('plush_genome').as('child_genome')
+  //                                              .select('child').unfold().inE().as("child_inE").subgraph('sg').outV().dedup().as('parent').values('plush_genome')
+  //                                              .as('parent_genome').where('child_genome', new P(sharedGenes, 'parent_genome')).select('parent').unfold()).cap('sg').next()
+	anc = ancG.traversal()
+	println(anc)
+	return anc
+}
+
+
 loadAncestry = { propertiesFileName, csvFilePath, filter, lexicase, successful ->
 	start = System.currentTimeMillis()
 
@@ -191,7 +238,8 @@ loadAncestry = { propertiesFileName, csvFilePath, filter, lexicase, successful -
   println("length of ancestor list: ${ancestor_list.size}")
 
 	if (lexicase) {
-		anc = get_ancestors_of_lexicase_run(300, ancestor_list, filter)
+		// anc = get_ancestors_of_lexicase_run(300, ancestor_list, filter)
+		anc = get_genetic_ancestors_of_lexicase_run(300, ancestor_list)
 	} else {
 		anc = get_ancestors_of_auto_run(1000, ancestor_list, filter)
 	}
