@@ -188,7 +188,7 @@ def get_genetic_ancestors_of_lexicase_run (max_gen, ancestor_list ){
   //                                              .subgraph('sg')
   //                                              .outV().dedup()).cap('sg').next()
   ancG = inject(ancestor_list).unfold().repeat(__.inE()
-                                               .filter {e -> hasWinnerGenes.test(e.get().vertex(IN))}
+                                               .filter {e -> hasWinnerGenes.test(e.get().vertex(OUT))}
                                                .subgraph('sg')
                                                .outV().dedup()).cap('sg').next()
     // parentGenome = parser.nextValue(Parsers.newParseable(it.get().vertex(IN).value('plush_genome')))
