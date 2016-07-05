@@ -1,6 +1,6 @@
 // Comment for color
 import java.io.*
-import org.apache.tinkerpop.gremlin.process.traversal.P 
+import org.apache.tinkerpop.gremlin.process.traversal.P
 
 // SharedGenes should be in the classpath
 
@@ -15,9 +15,9 @@ println("Printing nodes.")
 	total_error_vector = n['ev'].split(",")
 
 	zero_one_errors = total_error_vector.collect{ item ->
-		if (item.size() > 6) { v = 1 } 
-		else { 
-			v = item.toInteger(); 
+		if (item.size() > 6) { v = 1 }
+		else {
+			v = item.toInteger();
 			if (v > 0) { v = 1 }
 		}
 		v
@@ -43,7 +43,7 @@ println("Printing nodes.")
 			else { odd_total_error += item.toInteger() }
 		}
 	}*/
-	
+
 	 if (maxError < error_ceiling) {
 		error_ceiling = maxError
 	 }
@@ -74,7 +74,7 @@ println("Printing nodes.")
 	 color = "\"${combo}\""
 	*/
      name = '"' + n['id'] + '"'
-     
+
      params = "[shape=rectangle, width="
      params = params + width + ", height="
 	 params = params + height + ", style=filled, fillcolor="
@@ -89,17 +89,17 @@ println("Printing nodes.")
 void printEdge(fr, e, lexicase, filter) {
 	// Add one and multiply by four to make the line visible
 	// edgeWidth = (1 - e['DL_dist']/1000.0)*5
-	
+
 	// if (edgeWidth <= 0.5) { edgeWidth = 0.5 }
 
   edgeWidth = 1
 
 	if(!lexicase) {
-		if (e['type'] == "mother") { 
-			c = "gray40" 
+		if (e['type'] == "mother") {
+			c = "gray40"
 			sty = "solid"
-		} else { 
-			c = "gray70" 
+		} else {
+			c = "gray70"
 			sty = "dashed"
 		}
 	} else {
@@ -107,8 +107,8 @@ void printEdge(fr, e, lexicase, filter) {
 		rounded = (int) Math.round(transparency);
 		if (rounded > 255) {
 			rounded = 255
-		}	
-	
+		}
+
 		trans = Integer.toHexString(rounded).toUpperCase();
 		if (e['gos'] == "[:alternation :uniform-mutation]"){
 			// c = "black";
@@ -134,7 +134,7 @@ void printEdge(fr, e, lexicase, filter) {
 			sty = "solid";
 		}
 	}
-	
+
 	if (filter) {
 		DL_dist = e['DL_dist']/10
 		fr.println('"' + e['parent'] + '"' + " -> " + '"' + e['child'] + '"' + " [color=\"${c}\", penwidth=${edgeWidth}, style=\"${sty}\", label=\" ${DL_dist}\"];")
@@ -177,35 +177,13 @@ def get_ancestors_of_lexicase_run (max_gen, ancestor_list, filter) {
  */
 def get_genetic_ancestors_of_lexicase_run (max_gen, ancestor_list ){
 
-  // sharedGenes = new SharedGenes()
   hasWinnerGenes = new GenePool(ancestor_list)
 
   println("debug: building ancestry tree")
-  // ancG = inject(ancestor_list).unfold().repeat(__.inE().as('edge')
-  //                                              .outV().as('parent')
-  //                                              .where('parent', hasWinnerGenes)
-  //                                              .select('edge')
-  //                                              .subgraph('sg')
-  //                                              .outV().dedup()).cap('sg').next()
   ancG = inject(ancestor_list).unfold().repeat(__.inE()
                                                .filter {e -> hasWinnerGenes.test(e.get().vertex(OUT))}
                                                .subgraph('sg')
                                                .outV().dedup()).cap('sg').next()
-    // parentGenome = parser.nextValue(Parsers.newParseable(it.get().vertex(IN).value('plush_genome')))
-
-  // ancG = inject(ancestor_list).unfold().repeat(__.as('child').values('plush_genome').as('child_genome')
-  //                                              .select('child').inE()
-  //                                              .subgraph('sg').outV().dedup()).times(max_gen).cap('sg').next()
-  // ancG = inject(ancestor_list).unfold().repeat(__.as('child')
-  //                                              .values('plush_genome').as('child_genome')
-  //                                              .select('child').inE().as('child_inE')
-  //                                              .outV().dedup().as('parent')
-  //                                              .values('plush_genome').as('parent_genome')
-  //                                              .where('child_genome', new P(sharedGenes, 'parent_genome'))
-  //                                              .select('child_inE').subgraph('sg').outV()).cap('sg').next()
-  // ancG = inject(ancestor_list).unfold().repeat(__.as('child').values('plush_genome').as('child_genome')
-  //                                              .select('child').unfold().inE().as("child_inE").subgraph('sg').outV().dedup().as('parent').values('plush_genome')
-  //                                              .as('parent_genome').where('child_genome', new P(sharedGenes, 'parent_genome')).select('parent').unfold()).cap('sg').next()
 	anc = ancG.traversal()
 	println(anc)
 	return anc
@@ -218,16 +196,11 @@ loadAncestry = { propertiesFileName, csvFilePath, filter, lexicase, successful -
 	graph = TitanFactory.open(propertiesFileName)
 	g = graph.traversal()
 
-	// run_uuid = g.V().has('generation', 0).values('run_uuid').next()
 	run_uuid = g.V().hasLabel('run').values('run_uuid').next()
-	//success_run_uuid = 'b44020ab-f1e4-458f-86e2-a24c0d5c0d20'
-	//failed_run_uuid = '581aafba-32de-437c-a0f2-79a48c6b37c6'
 
 	ancestor_list = []
 	if (successful){
 		g.V().has('total_error', 0).fill(ancestor_list)
-    println("length of ancestor list: ${ancestor_list.size}")
-    println("number with 0 error " + g.V().has('total_error', 0).count().next())
 	} else {
 		winners = []
 		g.V().has('total_error', 0).has('run_uuid', run_uuid).fill(winners)
@@ -235,7 +208,6 @@ loadAncestry = { propertiesFileName, csvFilePath, filter, lexicase, successful -
 		g.V().has('generation', 300).has('run_uuid', run_uuid).fill(gen300)
 		ancestor_list = winners+gen300
 	}
-  println("length of ancestor list: ${ancestor_list.size}")
 
 	if (lexicase) {
 		// anc = get_ancestors_of_lexicase_run(300, ancestor_list, filter)
@@ -309,7 +281,7 @@ println(anc)
 				anc.V().has('generation', gen).values('uuid').next() + "\" }"
 		}
 	}
-	
+
 	// Wrap up the DOT syntax and close
 	fr.println("}")
 	fr.close()
