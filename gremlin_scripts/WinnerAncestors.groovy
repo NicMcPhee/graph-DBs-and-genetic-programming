@@ -86,7 +86,7 @@ println("Printing nodes.")
 
 // The target edge line format:
 //	"82:393" -> "83:619";
-void printEdge(fr, e, lexicase, filter) {
+void printEdge(fr, e, lexicase, filtering) {
 	// Add one and multiply by four to make the line visible
 	// edgeWidth = (1 - e['DL_dist']/1000.0)*5
 
@@ -135,12 +135,24 @@ void printEdge(fr, e, lexicase, filter) {
 		}
 	}
 
-	if (filter) {
+	if (filtering == "dl_distance") {
 		DL_dist = e['DL_dist']/10
 		fr.println('"' + e['parent'] + '"' + " -> " + '"' + e['child'] + '"' + " [color=\"${c}\", penwidth=${edgeWidth}, style=\"${sty}\", label=\" ${DL_dist}\"];")
 	} else {
 		fr.println('"' + e['parent'] + '"' + " -> " + '"' + e['child'] + '"' + " [color=\"${c}\", penwidth=${edgeWidth}, style=\"${sty}\"];")
 	}
+}
+
+def get_ancestors (max_gen, ancestor_list, filter_closure){
+  /* max_gen - number of generations we want to trace upwards
+   * ancestor_list - a list of vertices whose ancestry you would like to trace
+   * filter - a closure that takes a traversal containing vertices and produces
+   *          a folded traversal containing edges to be included in the subgraph
+   *
+   * returns a traversal
+   */
+  ancG = inject(ancestor_list).unfold().repeat(filter_closure(__).unfold().subgraph('sg').outV().dedup()).times(max_gen).cap('sg').next()
+  return ancG.traversal()
 }
 
 def get_ancestors_of_auto_run (max_gen, ancestor_list, filter) {
@@ -155,14 +167,9 @@ def get_ancestors_of_auto_run (max_gen, ancestor_list, filter) {
 	return anc
 }
 
-def get_ancestors_of_lexicase_run (max_gen, ancestor_list, filter) {
-	if (filter){
-		ancG = inject(ancestor_list).unfold().repeat(__.inE().hasNot('minimal_contribution').
-			subgraph('sg').outV().dedup()).times(max_gen).cap('sg').next()
-	} else {
-		ancG = inject(ancestor_list).unfold().repeat(__.inE().
-			subgraph('sg').outV().dedup()).times(max_gen).cap('sg').next()
-	}
+def get_ancestors_of_lexicase_run (max_gen, ancestor_list, filtering_closure) {
+
+  ancG = get_ancestors(max_gen, ancestor_list, filtering_closure)
 	anc = ancG.traversal()
 	println(anc)
 	return anc
@@ -175,22 +182,47 @@ def get_ancestors_of_lexicase_run (max_gen, ancestor_list, filter) {
  * Hmmm... that would require building a tree for each of the winners and then chasing merging them
  * back together.
  */
-def get_genetic_ancestors_of_lexicase_run (max_gen, ancestor_list ){
+// def get_genetic_ancestors_of_lexicase_run (max_gen, ancestor_list ){
 
-  hasWinnerGenes = new GenePool(ancestor_list)
+  // hasWinnerGenes = new GenePool(ancestor_list)
 
-  println("debug: building ancestry tree")
-  ancG = inject(ancestor_list).unfold().repeat(__.inE()
-                                               .filter {e -> hasWinnerGenes.test(e.get().vertex(OUT))}
-                                               .subgraph('sg')
-                                               .outV().dedup()).cap('sg').next()
-	anc = ancG.traversal()
-	println(anc)
-	return anc
+  // println("debug: building ancestry tree")
+  // ancG = inject(ancestor_list).unfold().repeat(__.inE()
+                                               // .filter {e -> hasWinnerGenes.test(e.get().vertex(OUT))}
+                                               // .subgraph('sg')
+                                               // .outV().dedup()).cap('sg').next()
+	// anc = ancG.traversal()
+	// println(anc)
+	// return anc
+// }
+
+createGeneChecker = { anc_list ->
+
+  parser = Parsers.newParser(defaultConfiguration())
+
+  anc_genomes = anc_list.collect { individual ->
+    genomeString = individual.values('plush_genome').next()
+    parser.nextValue(Parsers.newParseable(genomeString))
+  }
+
+  anc_genes = anc_genomes.flatten().unique()
+
+  return { vertex ->
+    vertex_genome_string = vertex.values('plush_genome').next()
+    vertex_genome = parser.nextValue(Parsers.newParseable(vertex_genome_string))
+
+    return anc_genes.any { g1 ->
+      vertex_genome.any { g2 ->
+        g1 == g2
+      }
+    }
+  }
 }
 
 
-loadAncestry = { propertiesFileName, csvFilePath, filter, lexicase, successful ->
+loadAncestry = { propertiesFileName, csvFilePath, filtering, lexicase, successful ->
+  /* filtering - should be one of "none", "genes", "dl_distance"
+   */
 	start = System.currentTimeMillis()
 
 	graph = TitanFactory.open(propertiesFileName)
@@ -209,13 +241,30 @@ loadAncestry = { propertiesFileName, csvFilePath, filter, lexicase, successful -
 		ancestor_list = winners+gen300
 	}
 
+  switch (filtering) {
+  case "none":
+    filter = {traversal -> traversal.inE()}
+    break
+  case "genes":
+    geneChecker = createGeneChecker(ancestor_list)
+    filter = {traversal ->  traversal.inE().filter{e -> geneChecker(e.get().vertex(OUT))} }
+    break
+  case "dl_distance":
+    filter = {traversal -> traversal.inE()hasNot('minimal_contribution') }
+    break
+  }
+
 	if (lexicase) {
 		// anc = get_ancestors_of_lexicase_run(300, ancestor_list, filter)
-		anc = get_genetic_ancestors_of_lexicase_run(300, ancestor_list)
+		// anc = get_genetic_ancestors_of_lexicase_run(300, ancestor_list)
+    // final_filter = {traversal - > filter(traversal)}
+    anc = get_ancestors(300, ancestor_list, filter)
 	} else {
 		anc = get_ancestors_of_auto_run(1000, ancestor_list, filter)
 	}
-println(anc)
+
+  println(anc)
+
 	if (successful){
 		maxGen = anc.V().values('generation').max().next()
 	} else {
@@ -270,7 +319,7 @@ println(anc)
 		// select('e').values('parent_type').as('type').
 		// select('parent', 'child', 'gos', 'ns', 'nc', 'DL_dist', 'type').
 		select('parent', 'child', 'gos', 'ns', 'nc').
-		sideEffect{ printEdge(fr, it.get(), lexicase, filter) }.
+		sideEffect{ printEdge(fr, it.get(), lexicase, filtering) }.
 		iterate(); null
 
 	// Add all the "rank=same" entries to line up the generations, e.g.,
