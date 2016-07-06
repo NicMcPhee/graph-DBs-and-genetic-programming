@@ -412,8 +412,9 @@ loadEdn = { propertiesFileName, ednDataFile ->
 
 println("The necessary functions are now loaded.")
 
-// println("To load a CSV file use a call like:\n\
-// \tgraph = loadCsv('genome_db.properties', '/Research/RSWN/lexicase/data2.csv.gz')\n\
-// \tg = graph.traversal()\n\
-// where you replace 'genome_db.properties' with the name of your properties file\n\
-// and '/Research/RSWN/lexicase/data0.csv.gz' with the path to your compressed CSV file.")
+println("To load an EDN file use a call like:\n\
+\tgraph = loadEdn('run0.properties', 'run0.edn.gz')\n\
+\tg = graph.traversal()\n\
+where you replace 'run0.properties' with the name of your properties file\n\
+and 'run0.edn.gz' with the path to your compressed EDN file.\n\
+Paths may be relative or absolute.")
