@@ -255,7 +255,6 @@ parseEdnFile = { graph, zippedEdnFile ->
   runUUID = null
 
   while ((current = next()) != Parser.END_OF_INPUT) {
-    // debugStatus("in the while loop")
 
     // Question: if datafile has a non-tagged item in the stream
     // we will crash with a "getValue() doesn't exist for type
@@ -377,7 +376,6 @@ addRunNode = { graph, runUUID, runFileName, successful, maxGen ->
 
 loadEdn = { propertiesFileName, ednDataFile ->
 
-  debugStatus("setting clock")
   start = System.currentTimeMillis()
 
   debugStatus("creating database")
