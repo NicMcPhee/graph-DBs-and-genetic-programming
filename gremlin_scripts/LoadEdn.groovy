@@ -223,7 +223,7 @@ addIndividualToGraph = { individual, graph, traversal ->
 }
 
 
-parseEdnFile = { graph, zippedEdnFile, runUUID ->
+parseEdnFile = { graph, zippedEdnFile ->
   g = graph.traversal()
 
   //println("We're in the parse section!")
@@ -240,6 +240,7 @@ parseEdnFile = { graph, zippedEdnFile, runUUID ->
 
   debugStatus("opened file for parsing")
   individualTag = Tag.newTag("clojush", "individual")
+  runTag = Tag.newTag("clojush", "run")
 
   // loopingCount is increased when we add an individual to the graph
   // we commit to the graph every time we reach loopingMax
@@ -251,6 +252,7 @@ parseEdnFile = { graph, zippedEdnFile, runUUID ->
 
   successfulRun = false
   largestGeneration = 0
+  runUUID = null
 
   while ((current = next()) != Parser.END_OF_INPUT) {
     // debugStatus("in the while loop")
@@ -270,6 +272,9 @@ parseEdnFile = { graph, zippedEdnFile, runUUID ->
         largestGeneration = generation
       }
     }
+    else if ( current.getTag() == runTag) {
+      runUUID = current.getValue()[Keyword.newKeyword("run-uuid")].toString()
+    }
     else {
       println("skipped item with unknown tag: ${current.getTag()}")
     }
@@ -283,7 +288,7 @@ parseEdnFile = { graph, zippedEdnFile, runUUID ->
   // a final commit
   graph.tx().commit()
 
-  return [largestGeneration, successfulRun]
+  return [largestGeneration, successfulRun, runUUID]
 }
 
 
@@ -375,10 +380,6 @@ loadEdn = { propertiesFileName, ednDataFile ->
   debugStatus("setting clock")
   start = System.currentTimeMillis()
 
-  // TODO get the following in the run output
-  debugStatus("generating run UUID")
-  runUUID = java.util.UUID.randomUUID()
-
   debugStatus("creating database")
   // TODO add check for missing file. The error that TitanFactory gives is non-obvious
   graph = TitanFactory.open(propertiesFileName)
@@ -387,7 +388,7 @@ loadEdn = { propertiesFileName, ednDataFile ->
   createPropertiesAndKeys(graph)
 
   debugStatus("parsing EDN file")
-  (maxGen, successful) = parseEdnFile(graph, ednDataFile, runUUID)
+  (maxGen, successful, runUUID) = parseEdnFile(graph, ednDataFile)
 
   // TODO addLevenshteinDistances(graph, maxGen)
   // TODO addMinimalContributionProperty(graph, maxGen)
