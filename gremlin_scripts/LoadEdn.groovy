@@ -256,11 +256,10 @@ parseEdnFile = { graph, zippedEdnFile ->
 
   while ((current = next()) != Parser.END_OF_INPUT) {
 
-    // Question: if datafile has a non-tagged item in the stream
-    // we will crash with a "getValue() doesn't exist for type
-    // map" or something like that. Should we explicitly check that
-    // every time and crash gracefully/display an error?
-    if ( current.getTag() == individualTag) {
+    if ( !(current instanceof TaggedValue) ){
+      println("skipped item with no tag")
+    }
+    else if ( current.getTag() == individualTag) {
       (generation, successful) = addIndividualToGraph(current.getValue(), graph, g)
       uncommittedIndividuals += 1
       totalCount += 1
