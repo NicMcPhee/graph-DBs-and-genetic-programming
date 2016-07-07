@@ -63,13 +63,19 @@ createPropertiesAndKeys = { graph ->
 
   minimal_contribution_prop = mgmt.makePropertyKey('minimal_contribution').dataType(Boolean.class).make()
 
+  // Gene Node Properties
+  gene_content = mgmt.makePropertyKey("content").dataType(String.class).make() // A map of all the information except the tracking
+  gene_position = mgmt.makePropertyKey("position").dataType(Integer.class).make() // zero-indexed position of the gene in its genome
+
 	// Vertex Labels
   individual = mgmt.makeVertexLabel('individual').make()
   run = mgmt.makeVertexLabel('run').make()
+  gene = mgmt.makeVertexLabel('gene').make()
 
   // Edge properties
   parent_type = mgmt.makePropertyKey("parent_type").dataType(String.class).make()
   LD_dist_prop = mgmt.makePropertyKey("LD_dist").dataType(Integer.class).make()
+  gene_transfer_method = mgmt.makePropertyKey("operations").dataType(String.class).make()
 
   // Indexing
   successfulIndex = mgmt.buildIndex("successfulIndex", Vertex.class).addKey(successfulProperty).indexOnly(run).buildCompositeIndex()
@@ -180,16 +186,20 @@ parseCsvFile = { graph, zippedCsvFile, runUUID ->
  * Addes the individual to the graph and adds edges to its parent if it has
  * any. If it does, they should be loaded in the graph before calling this
  * method.
+ *
+ * WARNING: This code currently crashes if passed an individual that has
+ * a nil genome.
  */
 addIndividualToGraph = { individual, graph, traversal ->
 
   /* these are the keys that we care about in the map */
-  // TODO: what happens when the map is missing the (on of) the keys we want?
+  // TODO: what happens when the map is missing (one of) the keys we want?
 
   uuid              = individual[Keyword.newKeyword("uuid")].toString()
   generation        = individual[Keyword.newKeyword("generation")]
   genetic_operators = Printers.printString(individual[Keyword.newKeyword("genetic-operators")])
-  plush_genome      = Printers.printString(individual[Keyword.newKeyword("genome")])
+  plush_genome      = individual[Keyword.newKeyword("genome")]
+  plush_genome_string = Printers.printString(plush_genome)
   total_error       = individual[Keyword.newKeyword("total-error")]
   errors            = Printers.printString(individual[Keyword.newKeyword("errors")])
   successful        = total_error == 0
@@ -205,20 +215,65 @@ addIndividualToGraph = { individual, graph, traversal ->
     // inside a run and we don't need both.
     "genetic_operators", genetic_operators,
     // "plush_genome_size" <-- TODO add this to EDN export
-    "plush_genome", plush_genome,
+    "plush_genome", plush_genome_string,
     "total_error", total_error,
     "error_vector", errors)
 
-  parentUUIDs = individual[Keyword.newKeyword("parent-uuids")]
-  if ( null != parentUUIDs ){
-    parentUUIDs.each { uuid ->
-      parent = g.V().has("uuid", uuid).next()
-      edge = parent.addEdge('parent_of', newVertex)
-    }
-    // edge0.property("parent_type", "mother") //<-- We don't need parent types do we?
-  }
+  // connect the parents
+  tracingK = Keyword.newKeyword("tracing")
+  parentK = Keyword.newKeyword("parent")
+  positionK = Keyword.newKeyword("position")
+  operatorK = Keyword.newKeyword("operator")
+  changesK = Keyword.newKeyword("changes")
+  randomK = Keyword.newKeyword("random")
 
-  return [generation, successful]
+  parentUUIDs = individual[Keyword.newKeyword("parent-uuids")]
+  parentUUIDs.each { uuid ->
+    parent = g.V().has('uuid', uuid).next()
+    parent.addEdge('parent_of', newVertex)
+  }
+  try {
+    // add the gene nodes
+    geneNodes = plush_genome.eachWithIndex { gene, index ->
+
+      tracingInfo = gene[tracingK]
+      geneString = Printers.printString( gene.findAll {it.getKey() != tracingK} )
+
+      newGene = graph.addVertex(
+        label, "gene",
+        "content", geneString,
+        "position", index)
+
+      newVertex.addEdge('contains', newGene)
+
+      // connect the gene to its source
+      if ( tracingInfo[changesK] != randomK ){
+        // debugStatus("connecting gene to parent")
+        // debugStatus("changes: ${tracingInfo[changesK]}")
+        // debugStatus(tracingInfo)
+
+        parentUUID = parentUUIDs[(int) tracingInfo[parentK]] // null in gen0, but then all the operators will be :random
+        // debugStatus("parentUUID ${parentUUID}")
+        positionInParent = (int) tracingInfo[positionK] // null in gen0
+        // debugStatus("positionInParent ${positionInParent}")
+
+        parentGene = g.V().has('uuid', parentUUID).outE().hasLabel('contains').inV().has('position', positionInParent).next()
+        edge = parentGene.addEdge('creates', newGene)
+        // debugStatus("added edge")
+        edge.property('operations', Printers.printString(tracingInfo[changesK]))
+        // debugStatus("set edge property to ${Printers.printString(tracingInfo[changesK])}")
+        if ( Printers.printString(tracingInfo[changesK]) == null){
+          debugStatus("found a null")
+        }
+      }
+    }
+
+    return [generation, successful]
+  } catch (com.thinkaurelius.titan.core.SchemaViolationException e) {
+    debugStatus("caught an exception processing an individual.")
+    debugStatus("individual ${individual}\ngraph ${graph}")
+    System.exit(2)
+  }
 
 }
 
