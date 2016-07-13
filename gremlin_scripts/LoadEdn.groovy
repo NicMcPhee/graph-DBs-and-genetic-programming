@@ -81,48 +81,48 @@ createPropertiesAndKeys = { graph ->
  */
 addIndividualToGraph = { individual, graph, traversal ->
 
-  /* these are the keys that we care about in the map */
-  // TODO: what happens when the map is missing (one of) the keys we want?
-
-  uuid              = individual[Keyword.newKeyword("uuid")].toString()
-  generation        = individual[Keyword.newKeyword("generation")]
-  genetic_operators = Printers.printString(individual[Keyword.newKeyword("genetic-operators")])
-  plush_genome      = individual[Keyword.newKeyword("genome")]
-  plush_genome_string = Printers.printString(plush_genome)
-  total_error       = individual[Keyword.newKeyword("total-error")]
-  errors            = Printers.printString(individual[Keyword.newKeyword("errors")])
-  successful        = total_error == 0
-
-  // add the vertex
-  newVertex = graph.addVertex (
-    label, "individual",
-    // "run_uuid", runUUID, <-- why would we want the not-very-useful run UUID on *every node*!
-    "uuid", uuid,
-    "generation", generation,
-    // "location", fields[2].toInteger() <-- The edn export currently doesn't produce this.
-    // We should use UUIDs OR generation:location. Both server to uniquely indentify a node
-    // inside a run and we don't need both.
-    "genetic_operators", genetic_operators,
-    // "plush_genome_size" <-- TODO add this to EDN export
-    "plush_genome", plush_genome_string,
-    "total_error", total_error,
-    "error_vector", errors)
-
-  // connect the parents
-  tracingK = Keyword.newKeyword("tracing")
-  parentK = Keyword.newKeyword("parent")
-  positionK = Keyword.newKeyword("position")
-  operatorK = Keyword.newKeyword("operator")
-  changesK = Keyword.newKeyword("changes")
-  randomK = Keyword.newKeyword("random")
-
-  parentUUIDs = individual[Keyword.newKeyword("parent-uuids")]
-  parents = parentUUIDs.collect { uuid ->
-    parent = g.V().has('uuid', uuid).next()
-    parent.addEdge('parent_of', newVertex)
-    return parent
-  }
   try {
+    /* these are the keys that we care about in the map */
+    // TODO: what happens when the map is missing (one of) the keys we want?
+
+    uuid              = individual[Keyword.newKeyword("uuid")].toString()
+    generation        = individual[Keyword.newKeyword("generation")]
+    genetic_operators = Printers.printString(individual[Keyword.newKeyword("genetic-operators")])
+    plush_genome      = individual[Keyword.newKeyword("genome")]
+    plush_genome_string = Printers.printString(plush_genome)
+    total_error       = individual[Keyword.newKeyword("total-error")]
+    errors            = Printers.printString(individual[Keyword.newKeyword("errors")])
+    successful        = total_error == 0
+
+    // add the vertex
+    newVertex = graph.addVertex (
+      label, "individual",
+      // "run_uuid", runUUID, <-- why would we want the not-very-useful run UUID on *every node*!
+      "uuid", uuid,
+      "generation", generation,
+      // "location", fields[2].toInteger() <-- The edn export currently doesn't produce this.
+      // We should use UUIDs OR generation:location. Both server to uniquely indentify a node
+      // inside a run and we don't need both.
+      "genetic_operators", genetic_operators,
+      // "plush_genome_size" <-- TODO add this to EDN export
+      "plush_genome", plush_genome_string,
+      "total_error", total_error,
+      "error_vector", errors)
+
+    // connect the parents
+    tracingK = Keyword.newKeyword("tracing")
+    parentK = Keyword.newKeyword("parent")
+    positionK = Keyword.newKeyword("position")
+    operatorK = Keyword.newKeyword("operator")
+    changesK = Keyword.newKeyword("changes")
+    randomK = Keyword.newKeyword("random")
+
+    parentUUIDs = individual[Keyword.newKeyword("parent-uuids")]
+    parents = parentUUIDs.collect { uuid ->
+      parent = g.V().has('uuid', uuid).next()
+      parent.addEdge('parent_of', newVertex)
+      return parent
+    }
     // add the gene nodes
     geneNodes = plush_genome.eachWithIndex { gene, index ->
 
@@ -163,9 +163,12 @@ addIndividualToGraph = { individual, graph, traversal ->
     }
 
     return [generation, successful]
-  } catch (com.thinkaurelius.titan.core.SchemaViolationException e) {
-    debugStatus("caught an exception processing an individual.")
-    debugStatus("individual ${individual}\ngraph ${graph}")
+  } catch (Exception e) {
+    f = new PrintWriter('/tmp/stderr')
+    f.println("caught  ${e.getClass()} processing an individual.")
+    e.printStackTrace(f)
+    f.println("individual ${individual}\ngraph ${graph}")
+    f.close()
     System.exit(2)
   }
 
