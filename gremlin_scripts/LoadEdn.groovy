@@ -232,6 +232,45 @@ parseEdnFile = { graph, zippedEdnFile ->
   return [largestGeneration, successfulRun, runUUID]
 }
 
+markAncestryGenesCopiesOnly = { ancestry_list, key, value ->
+  inject(ancestry_list).unfold().out('contains').repeat(
+    __.property(key,value).inE('creates').has('operations',':copy').outV()
+  ).iterate()
+}
+
+getGeneCounts = { vertex ->
+  genes = vertex.vertices(Direction.OUT, 'contains')
+  totGenes = 0
+  winGenes = 0
+  genes.each { v ->
+    if ( v.values('copied_to_winner')){
+      winGenes++;
+    }
+    totGenes++;
+  }
+  return [winning_genes: winGenes, total_genes: totGenes]
+}
+
+markNumberOfWinningGenes = { graph, lastGenIndex ->
+
+  g = graph.traversal()
+  (0..lastGenIndex).each { generation ->
+    g.V().has('generation', generation).sideEffect{ traverser ->
+
+      vertex = traverser.get()
+      stats = getGeneCounts(vertex)
+
+      if ( stats['winning_genes'] != 0){
+        vertex.property('total_copied_to_winner', stats['winning_genes'])
+        vertex.property('percent_copied_to_winner',  stats['winning_genes'] /(float) stats['total_genes'])
+      }
+
+    }.iterate()
+    graph.tx().commit()
+  }
+
+}
+
 
 addNumSelections = { graph, maxGen ->
   g = graph.traversal()
@@ -308,6 +347,22 @@ loadEdn = { propertiesFileName, ednDataFile ->
   (maxGen, successful, runUUID) = parseEdnFile(graph, ednDataFile)
 
   // TODO addLevenshteinDistances(graph, maxGen)
+
+  if (successful){
+
+    debugStatus('adding gene counts')
+    g = graph.traversal()
+    ancL = []
+    g.V().has('total_error',0).fill(ancL)
+
+    debugStatus('marking genes as copied')
+    markAncestryGenesCopiesOnly(ancL, 'copied_to_winner', true)
+    graph.tx().commit()
+
+    debugStatus('storing counts of genes')
+    markNumberOfWinningGenes(graph, maxGen)
+    graph.tx().commit()
+  }
 
   debugStatus("adding num selections and num children")
   addNumSelections(graph, maxGen)
