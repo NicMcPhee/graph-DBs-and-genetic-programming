@@ -221,6 +221,7 @@ parseEdnFile = { graph, zippedEdnFile ->
       if ( generation > largestGeneration ){
         largestGeneration = generation
       }
+      graph.tx().commit()
     }
     else if ( current.getTag() == runTag) {
       runUUID = current.getValue()[Keyword.newKeyword("run-uuid")].toString()
@@ -230,9 +231,9 @@ parseEdnFile = { graph, zippedEdnFile ->
     }
 
     if ((uncommittedIndividuals % maxUncommittedIndividuals) == 0){
-      println("Commiting at: ${totalCount}")
-      graph.tx().commit()
-      uncommittedIndividuals = 0
+      println("Now past: ${totalCount}")
+      // graph.tx().commit()
+      // uncommittedIndividuals = 0
     }
   }
   // a final commit
