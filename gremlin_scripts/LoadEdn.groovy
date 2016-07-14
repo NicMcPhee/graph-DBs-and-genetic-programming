@@ -63,6 +63,7 @@ createPropertiesAndKeys = { graph ->
   uuidIndex = mgmt.buildIndex("uuidIndex",  Vertex.class).addKey(uuid).unique().buildCompositeIndex()
   generationTotalError = mgmt.buildIndex('generationTotalError', Vertex.class).addKey(generation).addKey(total_error).buildMixedIndex("search")
   selectionsIndex = mgmt.buildIndex('selectionsIndex', Vertex.class).addKey(num_children).addKey(num_selections).addKey(num_ancestry_children).buildMixedIndex("search")
+  positionIndex = mgmt.buildIndex('positionIndex', Vertex.class).addKey(gene_position).buildCompositeIndex()
   mgmt.commit()
   //println("Done with setting keys.")
 }
