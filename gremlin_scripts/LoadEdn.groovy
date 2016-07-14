@@ -116,9 +116,10 @@ addIndividualToGraph = { individual, graph, traversal ->
   randomK = Keyword.newKeyword("random")
 
   parentUUIDs = individual[Keyword.newKeyword("parent-uuids")]
-  parentUUIDs.each { uuid ->
+  parents = parentUUIDs.collect { uuid ->
     parent = g.V().has('uuid', uuid).next()
     parent.addEdge('parent_of', newVertex)
+    return parent
   }
   try {
     // add the gene nodes
@@ -140,12 +141,16 @@ addIndividualToGraph = { individual, graph, traversal ->
         // debugStatus("changes: ${tracingInfo[changesK]}")
         // debugStatus(tracingInfo)
 
-        parentUUID = parentUUIDs[(int) tracingInfo[parentK]] // null in gen0, but then all the operators will be :random
+        // parentUUID = parentUUIDs[(int) tracingInfo[parentK]] // null in gen0, but then all the operators will be :random
         // debugStatus("parentUUID ${parentUUID}")
+        parent = parents[(int) tracingInfo[parentK]]
         positionInParent = (int) tracingInfo[positionK] // null in gen0
         // debugStatus("positionInParent ${positionInParent}")
 
-        parentGene = g.V().has('uuid', parentUUID).outE().hasLabel('contains').inV().has('position', positionInParent).next()
+        // parentGene = g.V().has('uuid', parentUUID).outE().hasLabel('contains').inV().has('position', positionInParent).next()
+        parentGene = inject(parent).out('contains').has('position', positionInParent).next()
+        // parentGene = parent.vertices(Direction.OUT, 'contains').findAll { g -> g.value('position') == positionInParent}
+
         edge = parentGene.addEdge('creates', newGene)
         // debugStatus("added edge")
         edge.property('operations', Printers.printString(tracingInfo[changesK]))
