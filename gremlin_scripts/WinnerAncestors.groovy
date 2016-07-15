@@ -222,7 +222,7 @@ createGeneChecker = { anc_list ->
 
 
 loadAncestry = { propertiesFileName, csvFilePath, filtering, lexicase, successful ->
-  /* filtering - should be one of "none", "genes", "dl_distance", "genes2"
+  /* filtering - should be one of "none", "genes", "dl_distance"
    */
 	start = System.currentTimeMillis()
 
@@ -242,28 +242,24 @@ loadAncestry = { propertiesFileName, csvFilePath, filtering, lexicase, successfu
 		ancestor_list = winners+gen300
 	}
 
-  // switch (filtering) {
-  // case "none":
-  //   filter = {traversal -> traversal.inE()}
-  //   break
-  // case "genes":
-  //   geneChecker = createGeneChecker(ancestor_list)
-  //   filter = {traversal ->  traversal.inE().filter{e -> geneChecker(e.get().vertex(OUT))} }
-  //   break
-  // case "genes2":
-
-  //   break
-  // case "dl_distance":
-  //   filter = {traversal -> traversal.inE()hasNot('minimal_contribution') }
-  //   break
-  // }
+  switch (filtering) {
+  case "none":
+    filter = {traversal -> traversal.inE()}
+    break
+  case "genes":
+    geneChecker = createGeneChecker(ancestor_list)
+    filter = {traversal ->  traversal.inE().filter{e -> geneChecker(e.get().vertex(OUT))} }
+    break
+  case "dl_distance":
+    filter = {traversal -> traversal.inE()hasNot('minimal_contribution') }
+    break
+  }
 
 	if (lexicase) {
 		// anc = get_ancestors_of_lexicase_run(300, ancestor_list, filter)
 		// anc = get_genetic_ancestors_of_lexicase_run(300, ancestor_list)
     // final_filter = {traversal - > filter(traversal)}
-    // anc = get_ancestors(300, ancestor_list, filter)
-    anc = AncestryFilters.filterByGenesCopiesOnly(ancestor_list)
+    anc = get_ancestors(300, ancestor_list, filter)
 	} else {
 		anc = get_ancestors_of_auto_run(1000, ancestor_list, filter)
 	}
@@ -342,102 +338,6 @@ loadAncestry = { propertiesFileName, csvFilePath, filtering, lexicase, successfu
 	println "Loading took (ms): " + (System.currentTimeMillis() - start)
 }
 
-
-createAncestryDot = { propertiesFileName, dotFileName, ancestryBuilder, successful ->
-
-	start = System.currentTimeMillis()
-
-	graph = TitanFactory.open(propertiesFileName)
-	g = graph.traversal()
-
-	run_uuid = g.V().hasLabel('run').values('run_uuid').next()
-
-	ancestor_list = []
-	if (successful){
-		g.V().has('total_error', 0).fill(ancestor_list)
-	} else {
-		winners = []
-		g.V().has('total_error', 0).has('run_uuid', run_uuid).fill(winners)
-		gen300 = []
-		g.V().has('generation', 300).has('run_uuid', run_uuid).fill(gen300)
-		ancestor_list = winners+gen300
-	}
-
-  anc = ancestryBuilder(ancestor_list)
-
-  println(anc)
-
-	if (successful){
-		maxGen = anc.V().values('generation').max().next()
-	} else {
-		maxGen = 300
-	}
-
-	maxError = anc.V().values('total_error').max().next()
-
-	(0..maxGen).each { gen ->
-    anc.V().has('generation', gen).sideEffect {
-      edges = it.get().edges(Direction.OUT);
-      num_ancestry_children = edges.collect { it.inVertex() }.unique().size();
-      it.get().property('num_ancestry_children', num_ancestry_children) }.iterate();
-    graph.tx().commit();
-    println gen }
-
-	// Open the DOT file, print the DOT header info.
-	fr = new java.io.FileWriter(csvFilePath)
-
-	fr.println("digraph G {")
-
-	// Generate nodes for all the generations
-	// "Gen 82" -> "Gen 83" -> "Gen 84" -> "Gen 85" -> "Gen 86" -> "Gen 87" [style=invis];
-	fr.println((0..maxGen).collect{ '"Gen ' + it + '"' }.join(" -> ") + " [style=invis];")
-
-	// Set up the defaults for nodes and edges.
-	fr.println('node[shape=point, width=0.15, height=0.15, fillcolor="white", penwidth=1, label=""];')
-	fr.println('edge[arrowsize=0.5, color="grey", penwidth=1, style="solid"];')
-
-	// Process all the vertices
-	anc.V().hasLabel('individual').
-		as('v').values('uuid').as('id').
-		select('v').values('num_selections').as('ns').
-		select('v').values('total_error').as('te').
-		select('v').values('num_ancestry_children').as('nac').
-		select('v').values('error_vector').as('ev').
-		//select('v').values('percent_zero_errors_evens').as('pze_even').
-		//select('v').values('percent_zero_errors_odds').as('pze_odd').
-		select('id', 'te', 'ns', 'nac', 'ev').//, 'pze_even', 'pze_odd').
-		// sideEffect{ printNode(fr, maxError, it.get(), color_map) }.
-		 sideEffect{ printNode(fr, maxError, it.get(), null) }.
-		iterate(); null
-
-	// Process all the edges
-  anc.E().hasLabel('parent_of').
-		as('e').inV().values('num_selections').as('ns').
-		select('e').inV().values('num_ancestry_children').as('nc').
-		select('e').outV().values('uuid').as('parent').
-		select('e').inV().values('uuid').as('child').
-		select('e').inV().values('genetic_operators').as('gos').
-		// select('e').values('DL_dist').as('DL_dist').
-		// select('e').values('parent_type').as('type').
-		// select('parent', 'child', 'gos', 'ns', 'nc', 'DL_dist', 'type').
-		select('parent', 'child', 'gos', 'ns', 'nc').
-		sideEffect{ printEdge(fr, it.get(), true, filtering) }.
-		iterate(); null
-
-	// Add all the "rank=same" entries to line up the generations, e.g.,
-	//    { rank=same; "Gen 186", "493c28e7-8ea1-4cfa-8a17-bbcf9cf38501" }
-	(maxGen+1).times { gen ->
-		if (anc.V().has('generation', gen).hasNext()) {
-			fr.println "{ rank=same; \"Gen " + gen + "\", \"" +
-				anc.V().has('generation', gen).values('uuid').next() + "\" }"
-		}
-	}
-
-	// Wrap up the DOT syntax and close
-	fr.println("}")
-	fr.close()
-	println "Loading took (ms): " + (System.currentTimeMillis() - start)
-}
 
 println("Java Import is loaded!")
 //loadAncestry = { propertiesFileName, csvFilePath, filter, lexicase, successful
