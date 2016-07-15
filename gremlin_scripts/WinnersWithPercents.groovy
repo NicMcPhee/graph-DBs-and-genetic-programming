@@ -60,7 +60,16 @@ void printEdge(dot, edgeData){
   dot.writeEdge(parent, child, attrs)
 }
 
-def get_ancestors(){}
+def get_ancestors(ancestor_list){
+
+  inject(ancestor_list).unfold().repeat(
+    __.as('child').outE('contains').subgraph('sg')
+    .inV().inE('creates').subgraph('sg')
+    .select('child').unfold()
+    .inE('parent_of').where(__.outV().has('total_copied_to_winner', gt(0))).subgraph('sg')
+    .outV().dedup()
+  ).cap('sg').next().traversal()
+}
 
 def statsSideEffect (traverser){
 
@@ -89,11 +98,13 @@ loadAncestry = { propertiesFileName, dotFileName ->
   status("finding run UUID")
 	run_uuid = g.V().hasLabel('run').values('run_uuid').next()
 
+  status('finding the list of winners')
 	ancestor_list = []
   g.V().has('total_error',0).fill(ancestor_list)
   status("ancestor_list.size() is ${ancestor_list.size()}")
 
-  anc = AncestryFilters.filterByGenesCopiesOnly(ancestor_list)
+  // anc = AncestryFilters.filterByGenesCopiesOnly(ancestor_list)
+  anc = get_ancestors(ancestor_list)
   status("$anc")
 
   maxGen = anc.V().values('generation').max().next()
