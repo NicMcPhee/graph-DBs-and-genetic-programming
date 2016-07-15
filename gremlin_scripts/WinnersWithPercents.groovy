@@ -96,7 +96,16 @@ loadAncestry = { propertiesFileName, dotFileName ->
 	g = graph.traversal()
 
   status("finding run UUID")
-	run_uuid = g.V().hasLabel('run').values('run_uuid').next()
+	// run_uuid = g.V().hasLabel('run').values('run_uuid').next()
+  run_node = g.V().has('successful', within(true,false)).hasLabel('run').next()
+
+  if ( run_node.value('successful') == false) {
+    println("Visualization of unsuccessful EC runs is not yet supported. Aborting visualization.")
+    System.exit(1)
+  }
+
+  run_uuid = run_node.value('run_uuid')
+  maxGen = (int) run_node.value('max_generation')
 
   status('finding the list of winners')
 	ancestor_list = []
@@ -107,9 +116,8 @@ loadAncestry = { propertiesFileName, dotFileName ->
   anc = get_ancestors(ancestor_list)
   status("$anc")
 
-  maxGen = anc.V().values('generation').max().next()
-	maxError = anc.V().values('total_error').max().next()
-  status("maxGen $maxGen, maxError $maxError")
+	// maxError = anc.V().values('total_error').max().next()
+  // status("maxGen $maxGen, maxError $maxError")
 
   status("adding num_ancestry_children")
   anc.V().sideEffect(statsSideEffect).iterate()
