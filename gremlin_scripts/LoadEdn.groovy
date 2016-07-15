@@ -263,6 +263,7 @@ getGeneCounts = { vertex ->
 
 markNumberOfWinningGenes = { graph, lastGenIndex ->
 
+  debugStatus("marked generation: ")
   g = graph.traversal()
   (0..lastGenIndex).each { generation ->
     g.V().has('generation', generation).sideEffect{ traverser ->
@@ -277,6 +278,7 @@ markNumberOfWinningGenes = { graph, lastGenIndex ->
 
     }.iterate()
     graph.tx().commit()
+    print("$generation, ")
   }
 
 }
