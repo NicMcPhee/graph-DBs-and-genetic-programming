@@ -60,8 +60,8 @@ printNode = { dot, nodeData ->
 
   name = nodeData['uuid']
 
-  nodeLabel0 = nodeData['percent_copied_to_winner']
-  nodeLabel1 = nodeData['total_copied_to_winner']
+  // nodeLabel0 = nodeData['percent_copied_to_winner']
+  // nodeLabel1 = nodeData['total_copied_to_winner']
 
   fillcolor = rswnDualColor(nodeData['error_vector'])
 
@@ -69,8 +69,8 @@ printNode = { dot, nodeData ->
            width: width,
            height: height,
            style: "filled",
-           fillcolor: fillcolor,
-           label: "\"$nodeLabel0, $nodeLabel1\""]
+           fillcolor: fillcolor]
+           // label: "\"$nodeLabel0, $nodeLabel1\""]
 
   dot.writeNode(name, attrs)
 
