@@ -164,12 +164,9 @@ addIndividualToGraph = { individual, graph, traversal ->
 
     return [generation, successful]
   } catch (Exception e) {
-    f = new PrintWriter('/tmp/stderr')
-    f.println("caught  ${e.getClass()} processing an individual.")
-    e.printStackTrace(f)
-    f.println("individual ${individual}\ngraph ${graph}")
-    f.close()
-    System.exit(2)
+    println("caught  ${e.getClass()} processing an individual.")
+    println("individual ${individual}\ngraph ${graph}")
+    throw e
   }
 
 }
