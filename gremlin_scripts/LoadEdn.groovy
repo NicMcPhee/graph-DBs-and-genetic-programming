@@ -75,9 +75,6 @@ createPropertiesAndKeys = { graph ->
  * Addes the individual to the graph and adds edges to its parent if it has
  * any. If it does, they should be loaded in the graph before calling this
  * method.
- *
- * WARNING: This code currently crashes if passed an individual that has
- * a nil genome.
  */
 addIndividualToGraph = { individual, graph, traversal ->
 
