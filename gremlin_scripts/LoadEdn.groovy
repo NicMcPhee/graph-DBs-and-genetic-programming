@@ -107,12 +107,17 @@ addIndividualToGraph = { individual, graph, traversal ->
       "error_vector", errors)
 
     // connect the parents
+    /*
     tracingK = Keyword.newKeyword("tracing")
     parentK = Keyword.newKeyword("parent")
     positionK = Keyword.newKeyword("position")
     operatorK = Keyword.newKeyword("operator")
     changesK = Keyword.newKeyword("changes")
     randomK = Keyword.newKeyword("random")
+    */
+
+    uuidKeyword = Keyword.newKeyword("uuid")
+    parentUuidKeyword = Keyword.newKeyword("parent-uuid")
 
     parentUUIDs = individual[Keyword.newKeyword("parent-uuids")]
     parents = parentUUIDs.collect { uuid ->
@@ -120,42 +125,31 @@ addIndividualToGraph = { individual, graph, traversal ->
       parent.addEdge('parent_of', newVertex)
       return parent
     }
+
+    def parentGenes = []
+    inject(parents).unfold().out('contains').fill(parentGenes)
+
     // add the gene nodes
     geneNodes = plush_genome.eachWithIndex { gene, index ->
 
-      tracingInfo = gene[tracingK]
-      geneString = Printers.printString( gene.findAll {it.getKey() != tracingK} )
+      def gene_uuid = gene[uuidKeyword]
+      def gene_parent_uuid = gene[parentUuidKeyword]
+      def gene_string = Printers.printString( gene.findAll {it.getKey() != parentUuidKeyword} )
 
-      newGene = graph.addVertex(
+      def newGene = graph.addVertex(
         label, "gene",
-        "content", geneString,
+        "uuid", gene_uuid.toString(),
+        "content", gene_string,
         "position", index)
 
       newVertex.addEdge('contains', newGene)
 
       // connect the gene to its source
-      if ( tracingInfo[changesK] != randomK ){
-        // debugStatus("connecting gene to parent")
-        // debugStatus("changes: ${tracingInfo[changesK]}")
-        // debugStatus(tracingInfo)
+      if ( gene_parent_uuid != null ){
 
-        // parentUUID = parentUUIDs[(int) tracingInfo[parentK]] // null in gen0, but then all the operators will be :random
-        // debugStatus("parentUUID ${parentUUID}")
-        parent = parents[(int) tracingInfo[parentK]]
-        positionInParent = (int) tracingInfo[positionK] // null in gen0
-        // debugStatus("positionInParent ${positionInParent}")
+        def parentGene = inject(parentGenes).unfold().has('uuid', gene_parent_uuid.toString()).next()
+        parentGene.addEdge('creates', newGene)
 
-        // parentGene = g.V().has('uuid', parentUUID).outE().hasLabel('contains').inV().has('position', positionInParent).next()
-        parentGene = inject(parent).out('contains').has('position', positionInParent).next()
-        // parentGene = parent.vertices(Direction.OUT, 'contains').findAll { g -> g.value('position') == positionInParent}
-
-        edge = parentGene.addEdge('creates', newGene)
-        // debugStatus("added edge")
-        edge.property('operations', Printers.printString(tracingInfo[changesK]))
-        // debugStatus("set edge property to ${Printers.printString(tracingInfo[changesK])}")
-        if ( Printers.printString(tracingInfo[changesK]) == null){
-          debugStatus("found a null")
-        }
       }
     }
 
