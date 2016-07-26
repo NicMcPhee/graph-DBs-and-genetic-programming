@@ -84,6 +84,7 @@ addIndividualToGraph = { individual, graph, traversal ->
 
     uuid              = individual[Keyword.newKeyword("uuid")].toString()
     generation        = individual[Keyword.newKeyword("generation")]
+    location          = individual[Keyword.newKeyword("location")]
     genetic_operators = Printers.printString(individual[Keyword.newKeyword("genetic-operators")])
     plush_genome      = individual[Keyword.newKeyword("genome")]
     plush_genome_string = Printers.printString(plush_genome)
@@ -104,6 +105,7 @@ addIndividualToGraph = { individual, graph, traversal ->
       // "plush_genome_size" <-- TODO add this to EDN export
       "plush_genome", plush_genome_string,
       "total_error", total_error,
+      "location", location,
       "error_vector", errors)
 
     // connect the parents
