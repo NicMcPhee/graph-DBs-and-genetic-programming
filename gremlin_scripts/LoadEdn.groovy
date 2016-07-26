@@ -102,8 +102,8 @@ addIndividualToGraph = { individual, graph, traversal ->
       // We should use UUIDs OR generation:location. Both server to uniquely indentify a node
       // inside a run and we don't need both.
       "genetic_operators", genetic_operators,
-      // "plush_genome_size" <-- TODO add this to EDN export
-      "plush_genome", plush_genome_string,
+      "plush_genome_size", plush_genome.size(),
+      // "plush_genome", plush_genome_string,
       "total_error", total_error,
       "location", location,
       "error_vector", errors)
