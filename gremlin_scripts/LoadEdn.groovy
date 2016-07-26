@@ -284,7 +284,7 @@ addNumSelections = { graph, maxGen ->
   (0..maxGen).each { gen ->
     g.V().has('generation', gen).sideEffect
     {
-      num_selections = it.get().edges(Direction.OUT).size();
+      num_selections = it.get().edges(Direction.OUT, 'parent_of').size();
       it.get().property('num_selections', num_selections)
     }.iterate();
     graph.tx().commit();
@@ -296,7 +296,7 @@ addNumChildren = { graph, maxGen ->
 
   (0..maxGen).each { gen ->
     g.V().has('generation', gen).sideEffect {
-      edges = it.get().edges(Direction.OUT);
+      edges = it.get().edges(Direction.OUT, 'parent_of');
       num_children = edges.collect { it.inVertex() }.unique().size();
       it.get().property('num_children', num_children)
     }.iterate();
