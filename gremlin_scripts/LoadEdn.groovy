@@ -136,7 +136,7 @@ addIndividualToGraph = { individual, graph, traversal ->
 
       def gene_uuid = gene[uuidKeyword]
       def gene_parent_uuid = gene[parentUuidKeyword]
-      def gene_string = Printers.printString( gene.findAll {it.getKey() != parentUuidKeyword} )
+      def gene_string = Printers.printString( gene.findAll {it.getKey() != parentUuidKeyword && it.getKey() != uuidKeyword} )
 
       def newGene = graph.addVertex(
         label, "gene",
