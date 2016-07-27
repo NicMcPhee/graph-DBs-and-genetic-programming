@@ -432,9 +432,6 @@ loadEdn = { propertiesFileName, ednDataFile ->
   addNumSelections(graph, maxGen)
   addNumChildren(graph, maxGen)
 
-  // If we put this before addNumSelections, etc., can we pull
-  // maxGen out of the run node and not need to pass it as an
-  // argument to those functions?
   debugStatus("adding run node")
   path = FileSystems.getDefault().getPath(ednDataFile)
   runFileName = path.getFileName().toString()
