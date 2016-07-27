@@ -288,7 +288,8 @@ markGeneChanges = { graph, lastGenIndex ->
 
 markAncestryGenesCopiesOnly = { ancestry_list, key, value ->
   inject(ancestry_list).unfold().out('contains').repeat(
-    __.property(key,value).inE('creates').has('operations',':copy').outV()
+    __.property(key,value).has('changes','[]').inE('creates').outV()
+    // We only proceed up the graph when the gene is no different from its parent
   ).iterate()
 }
 
@@ -405,6 +406,10 @@ loadEdn = { propertiesFileName, ednDataFile ->
   // TODO addLevenshteinDistances(graph, maxGen)
 
   if (successful){
+    debugStatus('adding succussful-run-only information')
+
+    markGeneChanges(graph, maxGen)
+    debugStatus('marked gene changes')
 
     debugStatus('adding gene counts')
     g = graph.traversal()
