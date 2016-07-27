@@ -19,6 +19,8 @@ debugStatus = { str ->
   }
 }
 
+parser = Parsers.newParser(defaultConfiguration())
+
 createPropertiesAndKeys = { graph ->
   mgmt = graph.openManagement()
 
