@@ -234,6 +234,58 @@ parseEdnFile = { graph, zippedEdnFile ->
   return [largestGeneration, successfulRun, runUUID]
 }
 
+// markAncestryGenesCopiesOnly = { ancestry_list, key, value ->
+//   inject(ancestry_list).unfold().out('contains').repeat(
+//     __.property(key,value).inE('creates').has('operations',':copy').outV()
+//   ).iterate()
+// }
+
+
+markGeneChangesSideEffect = { traverser ->
+
+  def gene = traverser.get()
+  def owner = gene.vertices(Direction.IN, 'contains')[0]
+  def creator = gene.vertices(Direction.IN, 'creates')[0]
+  // println("$gene, $owner, $creator")
+
+  Map content = parser.nextValue(Parsers.newParseable(gene.value('content')))
+  Map creator_content = parser.nextValue(Parsers.newParseable(creator.value('content')))
+
+  Set keys = content.keySet() + creator_content.keySet() // Thanks to Elliot Beach (@e-beach) for this line
+  List changed_keys = keys.findAll{ k -> content[k] != creator_content[k] } as List
+
+  gene.property('changes', Printers.printString(changed_keys))
+}
+
+markGeneChanges = { graph, lastGenIndex ->
+  /* Takes the graph and the lastGenIndex.
+   * The function compairs each gene in the graph to
+   * its parent gene and places an indicator on the vertex to show
+   * what changed.
+   * The lastGenIndex allows us to loop over the generations which provides
+   * a convenient way to periodicly commit.
+   */
+  def g = graph.traversal()
+
+  // (0..lastGenIndex).each { generation ->
+  //   g.V().has('generation', generation).out('contains')
+  //   .sideEffect(markGeneChangesSideEffect).iterate()
+  //   graph.tx().commit()
+  // }
+  (0..lastGenIndex).each { generation ->
+    g.V().has('generation', generation).out('contains')
+    .choose(
+      __.in('creates'),
+      __.sideEffect(markGeneChangesSideEffect),
+      __.property('changes', ":new")).iterate()
+
+    graph.tx().commit()
+    println(generation)
+  }
+  null
+
+}
+
 markAncestryGenesCopiesOnly = { ancestry_list, key, value ->
   inject(ancestry_list).unfold().out('contains').repeat(
     __.property(key,value).inE('creates').has('operations',':copy').outV()
