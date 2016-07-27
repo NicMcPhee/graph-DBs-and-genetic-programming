@@ -280,9 +280,9 @@ markGeneChanges = { graph, lastGenIndex ->
       __.property('changes', ":new")).iterate()
 
     graph.tx().commit()
-    println(generation)
+    print "$generation, "
   }
-  null
+  print '\n'
 
 }
 
@@ -325,6 +325,7 @@ markNumberOfWinningGenes = { graph, lastGenIndex ->
     graph.tx().commit()
     print("$generation, ")
   }
+  print '\n'
 
 }
 
@@ -339,7 +340,8 @@ addNumSelections = { graph, maxGen ->
       it.get().property('num_selections', num_selections)
     }.iterate();
     graph.tx().commit();
-    println gen }
+    print "$gen, "}
+  print '\n'
 }
 
 addNumChildren = { graph, maxGen ->
@@ -352,7 +354,8 @@ addNumChildren = { graph, maxGen ->
       it.get().property('num_children', num_children)
     }.iterate();
     graph.tx().commit();
-    println gen }
+    print "$gen, "}
+  print '\n'
 }
 
 genome_items = { node ->
@@ -406,23 +409,23 @@ loadEdn = { propertiesFileName, ednDataFile ->
   // TODO addLevenshteinDistances(graph, maxGen)
 
   if (successful){
-    debugStatus('adding succussful-run-only information')
+    debugStatus('adding successful-run-only information')
 
     markGeneChanges(graph, maxGen)
     debugStatus('marked gene changes')
 
-    debugStatus('adding gene counts')
     g = graph.traversal()
     ancL = []
     g.V().has('total_error',0).fill(ancL)
+    debugStatus('found winners')
 
-    debugStatus('marking genes as copied')
     markAncestryGenesCopiesOnly(ancL, 'copied_to_winner', true)
     graph.tx().commit()
+    debugStatus('marked genes as copied')
 
-    debugStatus('storing counts of genes')
     markNumberOfWinningGenes(graph, maxGen)
     graph.tx().commit()
+    debugStatus('stored counts of genes')
   }
 
   debugStatus("adding num selections and num children")
