@@ -499,8 +499,11 @@ loadEdn = { propertiesFileName, ednDataFile ->
 
   debugStatus("parsing EDN file")
   (maxGen, successful, runUUID) = parseEdnFile(graph, ednDataFile)
+  debugStatus("finished parsing EDN file")
 
-  // TODO addLevenshteinDistances(graph, maxGen)
+  debugStatus("adding DL distances")
+  addLevenshteinDistances(graph, maxGen)
+  debugStatus('finished adding DL distances')
 
   if (successful){
     debugStatus('adding successful-run-only information')
