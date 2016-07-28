@@ -120,7 +120,8 @@ loadAncestry = { propertiesFileName, dotFileName ->
   // status("maxGen $maxGen, maxError $maxError")
 
   status("adding num_ancestry_children")
-  anc.V().sideEffect(statsSideEffect).iterate()
+  anc.V().hasLabel('individual').sideEffect(statsSideEffect).iterate()
+  //      ^^^^^^^^^^^^^^^^^^^^^ I'm not sure this will work a large graph
 
   status("opening dot file for writing")
   dot = new DotWriter(dotFileName, maxGen, [node: [shape: "point",
