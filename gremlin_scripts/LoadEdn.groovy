@@ -474,7 +474,10 @@ addLevenshteinDistances = { graph, maxGen ->
         edge.property('DL_dist', dl_dist)
       }
     ).iterate()
+    graph.tx().commit()
+    print "$gen, "
   }
+  print '\n'
 }
 
 
