@@ -11,6 +11,8 @@ import us.bpsm.edn.*;
 import us.bpsm.edn.parser.*;
 import us.bpsm.edn.printer.*;
 
+import org.apache.tinkerpop.gremlin.structure.Edge
+
 printDebugInfo = true
 
 debugStatus = { str ->
@@ -367,22 +369,30 @@ genome_items = { node ->
 }
 
 addLevenshteinDistances = { graph, maxGen ->
-  g = graph.traversal()
+
+  def g = graph.traversal()
 
   (0..maxGen).each { gen ->
-      g.V().has('generation', gen).sideEffect { node_traverser ->
-        node = node_traverser.get()
-        items = genome_items(node)
-        child_edges = node.edges(Direction.OUT)
-        child_edges.each { child_edge ->
-          child = child_edge.inVertex()
-          child_items = genome_items(child)
-          dist = MethodRankHelper.damerauLevenshteinDistance(items, child_items)
-          child_edge.property('DL_dist', dist)
-        }
-      }.iterate()
-      graph.tx().commit()
-      println gen
+
+    g.V().has('generation', gen).local(
+      __.as('parent').flatMap(__.out('contains').order().by('position', incr).values('content').fold()).as('parent_genome')
+      .select('parent').outE('parent_of').as('edge')
+      .inV().flatMap(__.out('contains').order().by('position', incr).values('content').fold()).as('child_genome')
+      .select('parent_genome', 'edge', 'child_genome')
+      .sideEffect{ traverser ->
+
+        Map map = traverser.get()
+        def parent_genome = map['parent_genome'] as Object[]
+        Edge edge = map['edge']
+        def child_genome = map['child_genome'] as Object[]
+
+        // println "first parent gene" + parent_genome[0]
+        // println edge
+        // println "first child gene" + child_genome[0]
+        def dl_dist = MethodRankHelper.damerauLevenshteinDistance(parent_genome, child_genome) / 10
+        println dl_dist
+      }
+    ).iterate()
   }
 }
 
