@@ -1,5 +1,59 @@
+import static us.bpsm.edn.parser.Parsers.defaultConfiguration;
+import us.bpsm.edn.*;
+import us.bpsm.edn.parser.*;
+import us.bpsm.edn.printer.*;
 
-void printNode(dot, nodeData){
+
+rswnDualColor = {  error_vector_string ->
+
+  parser = Parsers.newParser(defaultConfiguration())
+  error_vector = parser.nextValue(Parsers.newParseable(error_vector_string))
+
+  num_cases = error_vector.size() / 2 // half are even and half are odd so we split the count
+
+  total_error_cap = 100000
+  total_error_evens = 0
+  total_error_odds = 0
+  num_evens_zero = 0
+  num_odds_zero = 0
+
+
+  error_vector.withIndex().each { pair ->
+
+    index = pair[1]
+    error = pair[0]
+
+    if ( index % 2 == 0 ){
+      total_error_evens += error
+      if ( error == 0){
+        num_evens_zero++
+      }
+    }
+    else {
+      total_error_odds += error
+      if ( error == 0) {
+        num_odds_zero++
+      }
+    }
+  }
+
+  total_error_evens = Math.min(total_error_evens, total_error_cap)
+  total_error_odds = Math.min(total_error_odds, total_error_cap)
+
+  percent_evens_zero = num_evens_zero * 1.0 / num_cases
+  percent_odds_zero = num_odds_zero * 1.0 / num_cases
+
+
+  hueEven = 1.0/6 + (5.0/6) * (1 - percent_evens_zero)
+  shadeEven = 1-(Math.log(total_error_evens+1)/Math.log(total_error_cap+1))
+
+  hueOdd = 1.0/6 + (5.0/6) * (1 - percent_odds_zero)
+  shadeOdd = 1-(Math.log(total_error_odds+1)/Math.log(total_error_cap+1))
+
+  return "\"$hueEven, 1 $shadeEven; 0.5: $hueOdd, 1, $shadeOdd\""
+}
+
+printNode = { dot, nodeData ->
 
   width = nodeData['num_selections']/50
   height = nodeData['num_ancestry_children']/10
@@ -9,11 +63,13 @@ void printNode(dot, nodeData){
   nodeLabel0 = nodeData['percent_copied_to_winner']
   nodeLabel1 = nodeData['total_copied_to_winner']
 
+  fillcolor = rswnDualColor(nodeData['error_vector'])
+
   attrs = [shape: "rectangle",
            width: width,
            height: height,
            style: "filled",
-           fillcolor: "white",
+           fillcolor: fillcolor,
            label: "\"$nodeLabel0, $nodeLabel1\""]
 
   dot.writeNode(name, attrs)
@@ -137,7 +193,7 @@ loadAncestry = { propertiesFileName, dotFileName ->
 
   status('printing nodes')
   anc.V().hasLabel('individual')
-  .valueMap('uuid', 'num_selections', 'total_error', 'num_ancestry_children', 'percent_copied_to_winner', 'total_copied_to_winner')
+  .valueMap('uuid', 'num_selections', 'total_error', 'num_ancestry_children', 'percent_copied_to_winner', 'total_copied_to_winner', 'error_vector')
   .sideEffect{printNode(dot, it.get().collectEntries{key, value -> [key, value[0]]})}.iterate()
 
   status('printing edges')
