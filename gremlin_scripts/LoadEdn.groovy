@@ -325,7 +325,8 @@ markNumberOfWinningGenes = { graph, lastGenIndex ->
 
     }.iterate()
     graph.tx().commit()
-    print("$generation, ")
+    print "$generation, "
+    System.out.flush()
   }
   print '\n'
 
@@ -341,9 +342,11 @@ addNumSelections = { graph, maxGen ->
       num_selections = it.get().edges(Direction.OUT, 'parent_of').size();
       it.get().property('num_selections', num_selections)
     }.iterate();
-    graph.tx().commit();
-    print "$gen, "}
-  print '\n'
+    graph.tx().commit()
+    print "$gen, "
+    System.out.flush()
+  }
+  println()
 }
 
 addNumChildren = { graph, maxGen ->
@@ -355,9 +358,11 @@ addNumChildren = { graph, maxGen ->
       num_children = edges.collect { it.inVertex() }.unique().size();
       it.get().property('num_children', num_children)
     }.iterate();
-    graph.tx().commit();
-    print "$gen, "}
-  print '\n'
+    graph.tx().commit()
+    print "$gen, "
+    System.out.flush()
+  }
+  println()
 }
 
 genome_items = { node ->
@@ -508,8 +513,9 @@ addLevenshteinDistances = { graph, maxGen ->
     }.iterate()
     graph.tx().commit()
     print "$gen, "
+    System.out.flush()
   }
-  print '\n'
+  println()
 }
 
 
