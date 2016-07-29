@@ -368,6 +368,68 @@ genome_items = { node ->
         flatten() as Object[]
 }
 
+damerauLevenshteinDistance = { ArrayList s, ArrayList t ->
+
+  int DL_SUBSTITUTION = 1
+  int DL_DELETE = 1 //This is also the cost for a insert
+  int DL_TRANSPOSITION = 1
+
+  if (s == null || t == null) {
+    throw new IllegalArgumentException("ArrayLists must not be null")
+  }
+
+  int n = s.size() // length of s
+  int m = t.size() // length of t
+
+  if (n == 0) {
+    return m
+  } else if (m == 0) {
+    return n
+  }
+
+  int[][] vals = new int[3][n + 1]
+
+
+  _d = [] //placeholder to assist in rotating vals
+
+  // indexes into arrays s and t
+  // i - iterates through s
+  // j - iterates through t
+
+  Object t_j = null // jth object of t
+
+  int cost = 0
+
+  for (i = 0; i <= n; i++) {
+    vals[1][i] = i * DL_DELETE
+  }
+
+
+  for (j = 1; j <= m; j++) {
+    t_j = t[j - 1]
+    vals[0][0] = j * DL_DELETE
+
+    for (i = 1; i <= n; i++) {
+      cost = s[i - 1].equals(t_j)? 0 : DL_SUBSTITUTION
+      // minimum of cell to the left+1, to the top+1, diagonally left and up +cost
+      vals[0][i] = Math.min(Math.min(vals[0][i - 1] + DL_DELETE, vals[1][i] + DL_DELETE), vals[1][i - 1] + cost)
+
+      //Check for transposition
+      if(i > 1 && j > 1 && s[i -1].equals(t[j -2]) && s[i- 2].equals(t_j)){
+        vals[0][i] = Math.min(vals[0][i], vals[2][i-2] + DL_TRANSPOSITION)
+      }
+    }
+
+    // rotate all value arrays upwards(older rows get a higher index)
+    _d = vals[2]
+    vals[2] = vals[1]
+    vals[1] = vals[0]
+    vals[0] = _d
+  }
+
+  return vals[1][n]
+}
+
 addLevenshteinDistances = { graph, maxGen ->
 
   def g = graph.traversal()
