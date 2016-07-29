@@ -444,15 +444,12 @@ addLevenshteinDistances = { graph, maxGen ->
       .sideEffect{ traverser ->
 
         Map map = traverser.get()
-        def parent_genome = map['parent_genome'] as Object[]
+        ArrayList parent_genome = map['parent_genome']
         Edge edge = map['edge']
-        def child_genome = map['child_genome'] as Object[]
+        ArrayList child_genome = map['child_genome']
 
-        // println "first parent gene" + parent_genome[0]
-        // println edge
-        // println "first child gene" + child_genome[0]
-        def dl_dist = MethodRankHelper.damerauLevenshteinDistance(parent_genome, child_genome) / 10
-        println dl_dist
+        int dl_dist = damerauLevenshteinDistance(parent_genome, child_genome)
+        edge.property('DL_dist', dl_dist)
       }
     ).iterate()
   }
