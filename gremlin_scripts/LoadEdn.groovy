@@ -454,26 +454,58 @@ damerauLevenshteinDistance = { ArrayList s, ArrayList t ->
 
 addLevenshteinDistances = { graph, maxGen ->
 
+  /*
+   * This method computes the LD distance between all [parent,child] pairs
+   * and stores it on the 'parent_of' edge between them. Instead of just treating
+   * each instruction map as a character, we linearize the genomes so that they
+   * look like $gene0_key0 gene0_{key1} ... gene0_{key{N_0}} gene1_{key0} gene1_{key1} ... gene1_{key{N_1}} ... geneM_{gene{N_M}}$
+   * We then compute the LD distance on those lists. All our runs so far have
+   * the same keys in every instruction map (a.k.a gene), but this code should
+   * continue to work properly if that changes.
+   *
+   */
   def g = graph.traversal()
 
   (0..maxGen).each { gen ->
 
-    g.V().has('generation', gen).local(
-      __.as('parent').flatMap(__.out('contains').order().by('position', incr).values('content').fold()).as('parent_genome')
-      .select('parent').outE('parent_of').as('edge')
-      .inV().flatMap(__.out('contains').order().by('position', incr).values('content').fold()).as('child_genome')
-      .select('parent_genome', 'edge', 'child_genome')
-      .sideEffect{ traverser ->
+    g.V().has('generation', gen).sideEffect{ traversal ->
 
-        Map map = traverser.get()
-        ArrayList parent_genome = map['parent_genome']
-        Edge edge = map['edge']
-        ArrayList child_genome = map['child_genome']
+      Vertex parent = traversal.get()
+      List raw_parent_genes = inject(parent).out('contains').order().by('position', incr).values('content').fold().next()
+      Iterator parent_of_edges = parent.edges(Direction.OUT,'parent_of')
 
-        int dl_dist = damerauLevenshteinDistance(parent_genome, child_genome)
-        edge.property('DL_dist', dl_dist)
+      if ( raw_parent_genes.size() == 0){
+        parent_of_edges.each { edge ->
+          Vertex child = edge.inVertex()
+          int dl_dist = inject(child).outE('contains').count().next()
+          edge.property('dl_dist', dl_dist)
+        }
       }
-    ).iterate()
+      else {
+        linearizeMap = { map ->
+            List keys = map.keySet() as List
+            keys.sort()
+            keys.collect{ k -> map[k]}
+        }
+
+        List linearized_parent_genes = raw_parent_genes.collect{ raw_gene ->
+          parser.nextValue(Parsers.newParseable(raw_gene))
+        }.collectMany(linearizeMap)
+
+
+        parent_of_edges.each { edge ->
+          Vertex child = edge.inVertex()
+          List raw_child_genes = inject(child).out('contains').order().by('position', incr).values('content').fold().next()
+
+          List linearized_child_genes = raw_child_genes.collect{ raw_gene ->
+            parser.nextValue(Parsers.newParseable(raw_gene))
+          }.collectMany(linearizeMap)
+
+          int dl_dist = damerauLevenshteinDistance(linearized_parent_genes, linearized_child_genes)
+          edge.property('dl_dist', dl_dist)
+        }
+      }
+    }.iterate()
     graph.tx().commit()
     print "$gen, "
   }
