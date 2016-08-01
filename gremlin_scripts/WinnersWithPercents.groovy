@@ -53,6 +53,26 @@ rswnDualColor = {  error_vector_string ->
   return "\"$hueEven, 1 $shadeEven; 0.5: $hueOdd, 1, $shadeOdd\""
 }
 
+plainPercentErrorsZeroColor = { nodeData ->
+
+  String error_vector_string = nodeData['error_vector']
+  List error_vector = parser.nextValue(Parsers.newParseable(error_vector_string))
+
+  int total_error = nodeData['total_error']
+  int total_error_cap = 100000
+  total_error = Math.min(total_error, total_error_cap)
+
+
+  int num_zeros = error_vector.count{ it == 0 }
+  int num_errors = error_vector.size()
+
+  Float hue = 1.0/6 + (5.0/6) * (1 - (num_zeros / num_errors))
+  Float shade= 1-(Math.log(total_error+1)/Math.log(total_error_cap+1))
+
+  return "\"$hue, 1, $shade\""
+
+}
+
 printNode = { dot, nodeData ->
 
   width = nodeData['num_selections']/50
@@ -63,7 +83,9 @@ printNode = { dot, nodeData ->
   // nodeLabel0 = nodeData['percent_copied_to_winner']
   // nodeLabel1 = nodeData['total_copied_to_winner']
 
-  fillcolor = rswnDualColor(nodeData['error_vector'])
+  // fillcolor = rswnDualColor(nodeData['error_vector'])
+  fillcolor = plainPercentErrorsZeroColor(nodeData)
+  // fillcolor = "white"
 
   attrs = [shape: "rectangle",
            width: width,
