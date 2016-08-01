@@ -75,8 +75,10 @@ plainPercentErrorsZeroColor = { nodeData ->
 
 printNode = { dot, nodeData ->
 
-  width = nodeData['num_selections']/50
-  height = nodeData['num_ancestry_children']/10
+  // width = nodeData['num_selections']/50
+  // height = nodeData['num_ancestry_children']/10
+  width = nodeData['total_copied_to_winner'] / 50
+  height = nodeData['num_selections'] / 50
 
   name = nodeData['uuid']
 
