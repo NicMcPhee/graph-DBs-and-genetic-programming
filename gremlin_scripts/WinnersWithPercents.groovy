@@ -53,6 +53,40 @@ rswnDualColor = {  error_vector_string ->
   return "\"$hueEven, 1 $shadeEven; 0.5: $hueOdd, 1, $shadeOdd\""
 }
 
+simpleAutoEncodingColor = { nodeData ->
+
+  String error_vector_string = nodeData['error_vector']
+  ArrayList error_vector = parser.nextValue(Parsers.newParseable(error_vector_string))
+
+  error_vector = error_vector.collect { num ->
+    if ( 0 == num) {
+      [0,0]
+    }
+    else if ( 0 < num && num < 3) {
+      [0,1]
+    }
+    else if ( 3 < num && num < 6) {
+      [1,0]
+    }
+    else {
+      [1,1]
+    }
+  }.flatten()
+
+  try {
+  // List colors = colorMap[error_vector]
+  (red, green, blue) = colorMap[error_vector]
+  // println("colors: $colors")
+  // println("colorMap: $colorMap")
+  // println("error_vector: $error_vector")
+
+  return String.format("\"#%02x%02x%02x\"", red as int , green as int, blue as int)
+  } catch (Exception e){
+    println("caught an exception simpleAutoEncodingColor")
+    throw e
+  }
+}
+
 plainPercentErrorsZeroColor = { nodeData ->
 
   String error_vector_string = nodeData['error_vector']
@@ -86,7 +120,8 @@ printNode = { dot, nodeData ->
   // nodeLabel1 = nodeData['total_copied_to_winner']
 
   // fillcolor = rswnDualColor(nodeData['error_vector'])
-  fillcolor = plainPercentErrorsZeroColor(nodeData)
+  // fillcolor = plainPercentErrorsZeroColor(nodeData)
+  fillcolor = simpleAutoEncodingColor(nodeData)
   // fillcolor = "white"
 
   attrs = [shape: "rectangle",
