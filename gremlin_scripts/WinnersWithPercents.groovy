@@ -107,10 +107,13 @@ void printEdge(dot, edgeData){
     sty = "solid"
   }
 
+  def edgeLabel = edgeData['dl_dist']
+
   parent = edgeData['parent']
   child = edgeData['child']
   attrs = [color: "\"${c}\"",
            penwidth: 1,
+           label: "\"$edgeLabel\"",
            style: "\"${sty}\""]
 
   dot.writeEdge(parent, child, attrs)
@@ -205,7 +208,8 @@ loadAncestry = { propertiesFileName, dotFileName ->
   .select('e').outV().values('uuid').as('parent')
   .select('e').inV().values('uuid').as('child')
   .select('e').inV().values('genetic_operators').as('genetic_operators')
-  .select('parent','child','genetic_operators', 'num_selections', 'num_ancestry_children')
+  .select('e').values('dl_dist').as('dl_dist')
+  .select('parent','child','genetic_operators', 'num_selections', 'num_ancestry_children', 'dl_dist')
   .sideEffect{ printEdge(dot, it.get())}.iterate()
 
   dot.close()
