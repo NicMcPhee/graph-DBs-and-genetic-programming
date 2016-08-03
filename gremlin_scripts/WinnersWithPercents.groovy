@@ -3,10 +3,10 @@ import us.bpsm.edn.*;
 import us.bpsm.edn.parser.*;
 import us.bpsm.edn.printer.*;
 
+parser = Parsers.newParser(defaultConfiguration())
 
 rswnDualColor = {  error_vector_string ->
 
-  parser = Parsers.newParser(defaultConfiguration())
   error_vector = parser.nextValue(Parsers.newParseable(error_vector_string))
 
   num_cases = error_vector.size() / 2 // half are even and half are odd so we split the count
