@@ -35,7 +35,7 @@ produceDot = { traversal, node_id ->
 
     sortedGenome = arr.sort{ it.value('position')}
 
-    fileWriter.println("subgraph cluster_$parentLocation {")
+    dot.openSubgraph("cluster_$parentLocation", [edge:[style:"invis"]])
 
     for ( i = 0; i < sortedGenome.size(); i++){
       vertex = sortedGenome[i]
@@ -49,13 +49,13 @@ produceDot = { traversal, node_id ->
         dot.writeEdge(uuid, next_uuid)
       }
     }
-    fileWriter.println("}")
+    dot.closeSubgraph()
 
   }.iterate()
 
 
   // group by child
-  fileWriter.println("subgraph cluster_child {")
+  dot.openSubgraph("cluster_child", [edge:[style:"invis"]])
 
   List child_genome = []
   traversal.V(node_id).out('contains').order().by('position', incr).fill(child_genome)
@@ -72,7 +72,7 @@ produceDot = { traversal, node_id ->
       dot.writeEdge(uuid, next_uuid)
     }
   }
-  fileWriter.println("}")
+  dot.closeSubgraph()
 
   dot.close()
 }
