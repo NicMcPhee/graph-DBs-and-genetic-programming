@@ -121,8 +121,8 @@ printNode = { dot, nodeData ->
 
   // fillcolor = rswnDualColor(nodeData['error_vector'])
   // fillcolor = plainPercentErrorsZeroColor(nodeData)
-  fillcolor = simpleAutoEncodingColor(nodeData)
-  // fillcolor = "white"
+  // fillcolor = simpleAutoEncodingColor(nodeData)
+  fillcolor = "white"
 
   attrs = [shape: "rectangle",
            width: width,
