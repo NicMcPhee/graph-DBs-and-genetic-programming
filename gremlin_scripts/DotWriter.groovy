@@ -33,7 +33,7 @@ class DotWriter {
    *                                        ...]]
    *           It is valid to omit any of the keys. All the keys should be Strings.
    *           All val* will be printed via their .toString() with no additional processing.
-   *           Add quotes occordingly.
+   *           Add quotes accordingly.
    */
   DotWriter(FileWriter fileWriter, int lastGenerationIndex, Map defaultAttributes){
 
