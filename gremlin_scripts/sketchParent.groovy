@@ -65,7 +65,17 @@ produceDot = { traversal, node_id, dotfile ->
     uuid = vertex.value('uuid')
     position = vertex.value('position')
     instruction = vertex.value('content')
-    dot.writeNode(uuid, [label: "\"$position, $instruction\""])
+    changes = vertex.value('changes')
+    if ( changes == "[]") {
+      fillcolor = "white"
+    }
+    else {
+      fillcolor = "\"orange\""
+    }
+    dot.writeNode(uuid,
+                  [ label: "\"$position, $instruction\"",
+                    style: "filled",
+                    fillcolor: fillcolor])
 
     if ( i < child_genome.size() - 1){
       next_uuid = child_genome[i+1].value('uuid')
