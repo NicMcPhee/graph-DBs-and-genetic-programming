@@ -9,6 +9,7 @@
 class DotWriter {
 
   FileWriter writer
+  int subgraphDepth
 
   /*
    * This contructor destroys current contents of the file.
@@ -37,6 +38,7 @@ class DotWriter {
   DotWriter(FileWriter fileWriter, int lastGenerationIndex, Map defaultAttributes){
 
     writer = fileWriter
+    subgraphDepth = 0
 
     writer.println("digraph G {")
     writer.println((0..lastGenerationIndex).collect{"\"Gen ${it}\""}.join(" -> ") + " [style=invis];")
@@ -82,7 +84,45 @@ class DotWriter {
     writer.print("];\n")
   }
 
+  /* Starts a subgraph with the given name and attributes.
+   * All subsequent calls to writeEdge and writeNode will
+   * place the items within this subgraph.
+   */
+  void openSubgraph(name, defaultAttributes) {
+
+    subgraphDepth += 1
+
+    writer.println("subgraph $name {")
+    defaultAttributes.each { pair ->
+      writer.print(pair.key)
+      writeAttributes(pair.value)
+    }
+  }
+
+  /*
+   * Closes the most recently opened subgraph.
+   * Returns true if there was a subgraph to be closed.
+   * Otherwise returns false.
+   */
+  boolean closeSubgraph(){
+    if ( subgraphDepth > 0) {
+      writer.println("}")
+      subgraphDepth -= 1
+      return true
+    }
+    else {
+      return false
+    }
+  }
+
+  /*
+   * Closes the any open subgraphs, the graph, and the file
+   * to which data is being written.
+   */
   void close(){
+
+    while ( closeSubgraph() ) {}
+
     writer.println("}")
     writer.close()
   }
