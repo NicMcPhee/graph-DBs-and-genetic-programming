@@ -41,8 +41,9 @@ class DotWriter {
     subgraphDepth = 0
 
     writer.println("digraph G {")
-    writer.println((0..lastGenerationIndex).collect{"\"Gen ${it}\""}.join(" -> ") + " [style=invis];")
-
+    if ( lastGenerationIndex >= 0){
+      writer.println((0..lastGenerationIndex).collect{"\"Gen ${it}\""}.join(" -> ") + " [style=invis];")
+    }
     defaultAttributes.each { pair ->
       if (["node", "edge"].contains(pair.key)){
         writer.print(pair.key)
