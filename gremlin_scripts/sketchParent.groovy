@@ -1,6 +1,6 @@
-produceDot = { traversal, node_id ->
+produceDot = { traversal, node_id, dotfile ->
 
-  FileWriter fileWriter = new FileWriter('/tmp/sketch.dot')
+  FileWriter fileWriter = new FileWriter(dotfile)
   def dot = new DotWriter(fileWriter, -1, [node: [shape: "rectangle"]])
 
   // draw the edges
