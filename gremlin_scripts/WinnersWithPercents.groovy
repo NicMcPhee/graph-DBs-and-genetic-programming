@@ -131,6 +131,11 @@ printNode = { dot, nodeData ->
            fillcolor: fillcolor]
            // label: "\"$nodeLabel0, $nodeLabel1\""]
 
+  if ( nodeData['total_error'] == 0){
+    attrs.shape="trapezium"
+    attrs.height = attrs.width / 2
+  }
+
   dot.writeNode(name, attrs)
 
 }
