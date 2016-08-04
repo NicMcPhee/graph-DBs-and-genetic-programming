@@ -55,6 +55,14 @@ rswnDualColor = {  error_vector_string ->
 
 simpleAutoEncodingColor = { nodeData ->
 
+  /*
+   * This requires you to have already have colorMap loaded up before
+   * this is called. colorMap should be a map where the keys are Lists
+   * of 1's and 0's. e.g. [1,0,0,1,1,1,0,1]. The associated values should be
+   * Lists of length three. e.g. [number, number, number] where all the numbers
+   * are in [0,255]
+   */
+
   String error_vector_string = nodeData['error_vector']
   ArrayList error_vector = parser.nextValue(Parsers.newParseable(error_vector_string))
 
@@ -74,13 +82,8 @@ simpleAutoEncodingColor = { nodeData ->
   }.flatten()
 
   try {
-  // List colors = colorMap[error_vector]
-  (red, green, blue) = colorMap[error_vector]
-  // println("colors: $colors")
-  // println("colorMap: $colorMap")
-  // println("error_vector: $error_vector")
-
-  return String.format("\"#%02x%02x%02x\"", red as int , green as int, blue as int)
+    (red, green, blue) = colorMap[error_vector]
+    return String.format("\"#%02x%02x%02x\"", red as int , green as int, blue as int)
   } catch (Exception e){
     println("caught an exception simpleAutoEncodingColor")
     throw e
