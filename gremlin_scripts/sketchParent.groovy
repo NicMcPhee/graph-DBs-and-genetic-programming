@@ -1,3 +1,37 @@
+
+plotIndividual = { dotWriter, ordered_genome, name, vertex_closure, color_closure, style ->
+
+  dotWriter.openSubgraph("cluster_$name", style)
+
+  for ( i = 0; i < ordered_genome.size(); i++){
+    // println i
+    vertex = vertex_closure(ordered_genome[i])
+    // println vertex
+    uuid = vertex.value('uuid')
+    position = vertex.value('position')
+    instruction = vertex.value('content')
+    fillcolor = color_closure(ordered_genome[i])
+    if ( vertex.values('copied_to_winner').size() == 0){
+     shape = "rectangle"
+    }
+    else {
+      shape = "oval"
+    }
+    dotWriter.writeNode(uuid, [label: "\"$position, $instruction\"",
+                         style: "filled",
+                         shape: shape,
+                         fillcolor: fillcolor])
+
+
+    if ( i < ordered_genome.size() - 1){
+      next_uuid = vertex_closure(ordered_genome[i+1]).value('uuid')
+      dotWriter.writeEdge(uuid, next_uuid)
+    }
+
+  }
+  dotWriter.closeSubgraph()
+}
+
 produceDot = { traversal, node_id, dotfile ->
 
   FileWriter fileWriter = new FileWriter(dotfile)
@@ -27,6 +61,7 @@ produceDot = { traversal, node_id, dotfile ->
   traversal.V(node_id).in('parent_of').sideEffect{ traverser ->
     def parent = traverser.get()
     parentLocation = parent.value('location')
+    parentGeneration = parent.value('generation')
 
     Iterator genome = parent.vertices(Direction.OUT, 'contains')
 
@@ -35,55 +70,40 @@ produceDot = { traversal, node_id, dotfile ->
 
     sortedGenome = arr.sort{ it.value('position')}
 
-    dot.openSubgraph("cluster_$parentLocation", [edge:[style:"invis"]])
-
-    for ( i = 0; i < sortedGenome.size(); i++){
-      vertex = sortedGenome[i]
-      uuid = vertex.value('uuid')
-      position = vertex.value('position')
-      instruction = vertex.value('content')
-      dot.writeNode(uuid, [label: "\"$position, $instruction\""])
-
-      if ( i < sortedGenome.size() - 1){
-        next_uuid = sortedGenome[i+1].value('uuid')
-        dot.writeEdge(uuid, next_uuid)
-      }
-    }
-    dot.closeSubgraph()
+    plotIndividual(dot,
+                   sortedGenome,
+                   "$parentLocation",
+                   {it},
+                   {"white"},
+                   [edge:[style: "invis"],
+                    graph:[label: "\"$parentGeneration:$parentLocation\""]])
 
   }.iterate()
 
 
   // group by child
-  dot.openSubgraph("cluster_child", [edge:[style:"invis"]])
+
+  def child = traversal.V(node_id).next()
+  int childGeneration = child.value('generation')
+  int childLocation = child.value('location')
 
   List child_genome = []
   traversal.V(node_id).out('contains').order().by('position', incr).fill(child_genome)
 
-  for ( i = 0; i < child_genome.size(); i++){
-    def vertex = child_genome[i]
-    uuid = vertex.value('uuid')
-    position = vertex.value('position')
-    instruction = vertex.value('content')
-    changes = vertex.value('changes')
-    if ( changes == "[]") {
-      fillcolor = "white"
-    }
-    else {
-      fillcolor = "\"orange\""
-    }
-    dot.writeNode(uuid,
-                  [ label: "\"$position, $instruction\"",
-                    style: "filled",
-                    fillcolor: fillcolor])
-
-    if ( i < child_genome.size() - 1){
-      next_uuid = child_genome[i+1].value('uuid')
-      dot.writeEdge(uuid, next_uuid)
-    }
-  }
-  dot.closeSubgraph()
-
+  plotIndividual(dot,
+                 child_genome,
+                 "child",
+                 {it},
+                 { gene ->
+                   if ( gene.value('changes') == '[]'){
+                     "white"
+                   }
+                   else {
+                     "orange"
+                   }
+                 },
+                 [edge: [style:"invis"],
+                  graph: [label: "\"$childGeneration:$childLocation\""]])
   dot.close()
 }
 
