@@ -1,5 +1,5 @@
 
-plotIndividual = { dotWriter, ordered_genome, name, vertex_closure, color_closure, style ->
+plotHelper = { dotWriter, ordered_genome, name, vertex_closure, color_closure, style ->
 
   dotWriter.openSubgraph("cluster_$name", style)
 
@@ -70,7 +70,7 @@ produceDot = { traversal, node_id, dotfile ->
 
     sortedGenome = arr.sort{ it.value('position')}
 
-    plotIndividual(dot,
+    plotHelper(dot,
                    sortedGenome,
                    "$parentLocation",
                    {it},
@@ -90,7 +90,7 @@ produceDot = { traversal, node_id, dotfile ->
   List child_genome = []
   traversal.V(node_id).out('contains').order().by('position', incr).fill(child_genome)
 
-  plotIndividual(dot,
+  plotHelper(dot,
                  child_genome,
                  "child",
                  {it},
