@@ -56,7 +56,6 @@ produceDot = { traversal, node_id, dotfile ->
 
   }.iterate()
 
-
   // group by parent
   traversal.V(node_id).in('parent_of').sideEffect{ traverser ->
     def parent = traverser.get()
@@ -66,7 +65,7 @@ produceDot = { traversal, node_id, dotfile ->
     Iterator genome = parent.vertices(Direction.OUT, 'contains')
 
     arr = []
-    genome.each { arr << it}
+    genome.each { arr << it} // There's probably a better way to "convert" an Iterator to a List
 
     sortedGenome = arr.sort{ it.value('position')}
 
@@ -77,12 +76,9 @@ produceDot = { traversal, node_id, dotfile ->
                    {"white"},
                    [edge:[style: "invis"],
                     graph:[label: "\"$parentGeneration:$parentLocation\""]])
-
   }.iterate()
 
-
   // group by child
-
   def child = traversal.V(node_id).next()
   int childGeneration = child.value('generation')
   int childLocation = child.value('location')
@@ -108,11 +104,6 @@ produceDot = { traversal, node_id, dotfile ->
 }
 
 
-/*
-==>v[83636336]
-gremlin> anc.V().has('generation', 6).where(__.inE().values('dl_dist').is(4)).where(__.inE().count().is(1)).in().in()
-==>v[51605560]
-*/
 sketchAncestor = { traversal, target_id, source_id, dot_file ->
 
   // def target = traversal.V(target_id).next()
