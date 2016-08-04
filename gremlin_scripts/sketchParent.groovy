@@ -105,7 +105,7 @@ produceDot = { traversal, node_id, dotfile ->
                      "white"
                    }
                    else {
-                     "orange"
+                     "\"#FFCCAA\""
                    }
                  },
                  [edge: [style:"invis"],
