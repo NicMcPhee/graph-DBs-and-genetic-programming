@@ -1,4 +1,9 @@
 
+parser = Parsers.newParser(defaultConfiguration())
+
+instruction_key = Keyword.newKeyword('instruction')
+close_key = Keyword.newKeyword('close')
+
 plotHelper = { dotWriter, ordered_genome, name, vertex_closure, color_closure, style ->
 
   dotWriter.openSubgraph("cluster_$name", style)
@@ -9,7 +14,12 @@ plotHelper = { dotWriter, ordered_genome, name, vertex_closure, color_closure, s
     // println vertex
     uuid = vertex.value('uuid')
     position = vertex.value('position')
-    instruction = vertex.value('content')
+
+    content_string = vertex.value('content')
+    content_map = parser.nextValue(Parsers.newParseable(content_string))
+    instruction = Printers.printString(content_map[instruction_key]).replace('\\', '\\\\')
+    close = Printers.printString(content_map[close_key])
+
     fillcolor = color_closure(ordered_genome[i])
     if ( vertex.values('copied_to_winner').size() == 0){
      shape = "rectangle"
@@ -17,7 +27,7 @@ plotHelper = { dotWriter, ordered_genome, name, vertex_closure, color_closure, s
     else {
       shape = "oval"
     }
-    dotWriter.writeNode(uuid, [label: "\"$position, $instruction\"",
+    dotWriter.writeNode(uuid, [label: "\"$position: $instruction, $close\"",
                          style: "filled",
                          shape: shape,
                          fillcolor: fillcolor])
