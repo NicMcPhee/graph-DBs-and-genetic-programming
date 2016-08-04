@@ -116,6 +116,9 @@ printNode = { dot, nodeData ->
 
   name = nodeData['uuid']
 
+  generation = nodeData['generation']
+  location = nodeData['location']
+
   // nodeLabel0 = nodeData['percent_copied_to_winner']
   // nodeLabel1 = nodeData['total_copied_to_winner']
 
@@ -128,6 +131,7 @@ printNode = { dot, nodeData ->
            width: width,
            height: height,
            style: "filled",
+           tooltip: "\"$generation:$location\"",
            fillcolor: fillcolor]
            // label: "\"$nodeLabel0, $nodeLabel1\""]
 
@@ -261,7 +265,7 @@ loadAncestry = { propertiesFileName, dotFileName ->
 
   status('printing nodes')
   anc.V().hasLabel('individual')
-  .valueMap('uuid', 'num_selections', 'total_error', 'num_ancestry_children', 'percent_copied_to_winner', 'total_copied_to_winner', 'error_vector')
+  .valueMap('uuid', 'num_selections', 'total_error', 'num_ancestry_children', 'percent_copied_to_winner', 'total_copied_to_winner', 'error_vector', 'generation', 'location')
   .sideEffect{printNode(dot, it.get().collectEntries{key, value -> [key, value[0]]})}.iterate()
 
   status('printing edges')
