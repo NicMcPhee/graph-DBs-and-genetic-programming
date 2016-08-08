@@ -95,6 +95,7 @@ addIndividualToGraph = { individual, graph, traversal ->
     total_error       = individual[Keyword.newKeyword("total-error")]
     errors            = Printers.printString(individual[Keyword.newKeyword("errors")])
     successful        = total_error == 0
+    is_random_replacement = individual[Keyword.newKeyword("is-random-replacement")]
 
     // add the vertex
     newVertex = graph.addVertex (
@@ -111,6 +112,10 @@ addIndividualToGraph = { individual, graph, traversal ->
       "total_error", total_error,
       "location", location,
       "error_vector", errors)
+
+    if ( is_random_replacement != null){
+      newVertex.property('is_random_replacement', is_random_replacement)
+    }
 
     // connect the parents
     /*
