@@ -283,6 +283,7 @@ markGeneChanges = { graph, lastGenIndex ->
 
     graph.tx().commit()
     print "$generation, "
+    System.out.flush()
   }
   print '\n'
 
