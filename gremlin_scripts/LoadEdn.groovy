@@ -132,7 +132,7 @@ addIndividualToGraph = { individual, graph, traversal ->
 
     parentUUIDs = individual[Keyword.newKeyword("parent-uuids")]
     parents = parentUUIDs.collect { uuid ->
-      parent = g.V().has('uuid', uuid).next()
+      parent = traversal.V().has('uuid', uuid).next()
       parent.addEdge('parent_of', newVertex)
       return parent
     }
