@@ -260,6 +260,7 @@ markGeneChangesSideEffect = { traverser ->
 
   Set keys = content.keySet() + creator_content.keySet() // Thanks to Elliot Beach (@e-beach) for this line
   List changed_keys = keys.findAll{ k -> content[k] != creator_content[k] } as List
+  changed_keys.sort() // avoid having some with [:close :silent] and some with [:silent :close]
 
   gene.property('changes', Printers.printString(changed_keys))
 }
