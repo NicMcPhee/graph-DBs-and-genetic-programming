@@ -1,5 +1,12 @@
+// comment for coloring in some editors
+import us.bpsm.edn.parser.*
+// ^ for reading EDN
+import us.bpsm.edn.printer.*
+// ^ for writing EDN
+import us.bpsm.edn.*
+// ^ for Keywords and Symbols
 
-parser = Parsers.newParser(defaultConfiguration())
+parser = Parsers.newParser(Parsers.defaultConfiguration())
 
 instruction_key = Keyword.newKeyword('instruction')
 close_key = Keyword.newKeyword('close')
