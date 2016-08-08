@@ -543,11 +543,12 @@ loadEdn = { propertiesFileName, ednDataFile ->
   addLevenshteinDistances(graph, maxGen)
   debugStatus('finished adding DL distances')
 
+  debugStatus('marking gene changes')
+  markGeneChanges(graph, maxGen)
+  debugStatus('marked gene changes')
+
   if (successful){
     debugStatus('adding successful-run-only information')
-
-    markGeneChanges(graph, maxGen)
-    debugStatus('marked gene changes')
 
     g = graph.traversal()
     ancL = []
