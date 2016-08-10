@@ -182,10 +182,10 @@ void printEdge(dot, edgeData){
 
   parent = edgeData['parent']
   child = edgeData['child']
-  attrs = [color: "\"${c}\"",
+  attrs = [color: "\"$c\"",
            penwidth: 1,
            label: "\"$edgeLabel\"",
-           style: "\"${sty}\""]
+           style: "\"$sty\""]
 
   dot.writeEdge(parent, child, attrs)
 }
