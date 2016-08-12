@@ -548,9 +548,9 @@ loadEdn = { propertiesFileName, ednDataFile ->
   (maxGen, successful, runUUID) = parseEdnFile(graph, ednDataFile)
   debugStatus("finished parsing EDN file")
 
-  debugStatus("adding DL distances")
-  addLevenshteinDistances(graph, maxGen)
-  debugStatus('finished adding DL distances')
+  // debugStatus("adding DL distances")
+  // addLevenshteinDistances(graph, maxGen)
+  // debugStatus('finished adding DL distances')
 
   debugStatus('marking gene changes')
   markGeneChanges(graph, maxGen)
