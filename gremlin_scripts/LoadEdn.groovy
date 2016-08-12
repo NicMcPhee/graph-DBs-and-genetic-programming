@@ -85,6 +85,8 @@ addIndividualToGraph = { individual, graph, traversal ->
   try {
     /* these are the keys that we care about in the map */
     // TODO: what happens when the map is missing (one of) the keys we want?
+    // TODO: it _might_ be nice to be able to make note of an individual having keys we
+    //       don't recognize. And store what the values were in a single field?
 
     uuid              = individual[Keyword.newKeyword("uuid")].toString()
     generation        = individual[Keyword.newKeyword("generation")]
