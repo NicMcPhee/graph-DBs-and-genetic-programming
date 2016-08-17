@@ -304,6 +304,22 @@ markAncestryGenesVerbatimCopiesOnly = { ancestry_list, key, value ->
   ).iterate()
 }
 
+markAncestryGenesInstructionCopiesOnly = { ancestry_list, key, value ->
+  inject(ancestry_list).unfold().out('contains').repeat(
+    __.property(key,value).filter { !it.get().value('changes').contains(":instruction") }.inE('creates').outV()
+    // We only proceed up the graph when the :instruction is the same as its parent :instruction
+  ).iterate()
+}
+
+markAncestryGenesCloseCopiesOnly = { ancestry_list, key, value ->
+  inject(ancestry_list).unfold().out('contains').repeat(
+    __.property(key,value).filter { !it.get().value('changes').contains(":close") }.inE('creates').outV()
+    // We only proceed up the graph when the :close is the same as its parent :close
+  ).iterate()
+}
+
+
+
 getGeneCounts = { vertex ->
   genes = vertex.vertices(Direction.OUT, 'contains')
   totGenes = 0
