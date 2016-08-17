@@ -297,7 +297,7 @@ markGeneChanges = { graph, lastGenIndex ->
 
 }
 
-markAncestryGenesCopiesOnly = { ancestry_list, key, value ->
+markAncestryGenesVerbatimCopiesOnly = { ancestry_list, key, value ->
   inject(ancestry_list).unfold().out('contains').repeat(
     __.property(key,value).has('changes','[]').inE('creates').outV()
     // We only proceed up the graph when the gene is no different from its parent
@@ -564,7 +564,7 @@ loadEdn = { propertiesFileName, ednDataFile ->
     g.V().has('total_error',0).fill(ancL)
     debugStatus('found winners')
 
-    markAncestryGenesCopiesOnly(ancL, 'copied_to_winner', true)
+    markAncestryGenesVerbatimCopiesOnly(ancL, 'copied_to_winner', true)
     graph.tx().commit()
     debugStatus('marked genes as copied')
 
