@@ -249,7 +249,6 @@ loadAncestry = { propertiesFileName, dotFileName ->
   g.V().has('total_error',0).fill(ancestor_list)
   status("ancestor_list.size() is ${ancestor_list.size()}")
 
-  // anc = AncestryFilters.filterByGenesCopiesOnly(ancestor_list)
   anc = get_ancestors_by_genes(ancestor_list)
   status("$anc")
 
