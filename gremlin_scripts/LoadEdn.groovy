@@ -299,21 +299,21 @@ markGeneChanges = { graph, lastGenIndex ->
 
 markAncestryGenesVerbatimCopiesOnly = { ancestry_list, key, value ->
   inject(ancestry_list).unfold().out('contains').repeat(
-    __.property(key,value).has('changes','[]').inE('creates').outV()
+    __.property(key,value).has('changes','[]').in('creates')
     // We only proceed up the graph when the gene is no different from its parent
   ).iterate()
 }
 
 markAncestryGenesInstructionCopiesOnly = { ancestry_list, key, value ->
   inject(ancestry_list).unfold().out('contains').repeat(
-    __.property(key,value).filter { !it.get().value('changes').contains(":instruction") }.inE('creates').outV()
+    __.property(key,value).filter { !it.get().value('changes').contains(":instruction") }.in('creates')
     // We only proceed up the graph when the :instruction is the same as its parent :instruction
   ).iterate()
 }
 
 markAncestryGenesCloseCopiesOnly = { ancestry_list, key, value ->
   inject(ancestry_list).unfold().out('contains').repeat(
-    __.property(key,value).filter { !it.get().value('changes').contains(":close") }.inE('creates').outV()
+    __.property(key,value).filter { !it.get().value('changes').contains(":close") }.in('creates')
     // We only proceed up the graph when the :close is the same as its parent :close
   ).iterate()
 }
