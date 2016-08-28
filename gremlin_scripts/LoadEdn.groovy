@@ -544,6 +544,32 @@ addLevenshteinDistances = { graph, maxGen ->
 }
 
 
+addMinimalContributionProperty = { graph, lastGenIndex ->
+
+	g = graph.traversal()
+
+	(0..lastGenIndex).each { gen ->
+		g.V().has('generation', gen).sideEffect { node_traverser ->
+			child = node_traverser.get()
+			child_size = child.value('plush_genome_size')
+			parent_edges = child.edges(Direction.IN).sort{ it.value('dl_dist') }
+			unique_parents = parent_edges.collect{ it.outVertex() }.unique()
+			if (unique_parents.size() == 2) {
+			  parent_edges = child.edges(Direction.IN).sort{ it.value('dl_dist') }
+			  distances = parent_edges.collect{ it.value('dl_dist') }
+			  parent_edges = child.edges(Direction.IN).sort{ it.value('dl_dist') }
+			  if (distances[0] / 10 < 0.2*child_size || distances[1] >= 2 * distances[0]) {
+			    // println "${child_size}, ${distances[0]}, and ${distances[1]}"
+			    parent_edges[1].property('minimal_contribution', true)
+			  }
+			}
+		}.iterate()
+		graph.tx().commit()
+		print "$gen, "
+    System.out.flush()
+	}
+}
+
 addRunNode = { graph, runUUID, runFileName, successful, maxGen ->
   runVertex = graph.addVertex(label, "run", "run_uuid", runUUID, "data_file", runFileName, "successful", successful, "max_generation", maxGen)
   graph.tx().commit()
