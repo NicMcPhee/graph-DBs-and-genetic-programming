@@ -112,11 +112,18 @@ plainPercentErrorsZeroColor = { nodeData ->
 
 printNode = { dot, nodeData ->
 
-  // width = nodeData['num_selections']/50
-  // height = nodeData['num_ancestry_children']/10
-  width = nodeData['total_copied_to_winner'] / 50
-  height = nodeData['num_selections'] / 50
+  try {
 
+    // width = nodeData['num_selections']/50
+    // height = nodeData['num_ancestry_children']/10
+
+    width = nodeData['total_copied_to_winner'] / 50
+    height = nodeData['num_selections'] / 50
+
+  } catch (Exception e){
+    println("caught an exception setting width & height in printNode")
+    throw(e)
+  }
   name = nodeData['uuid']
 
   generation = nodeData['generation']
