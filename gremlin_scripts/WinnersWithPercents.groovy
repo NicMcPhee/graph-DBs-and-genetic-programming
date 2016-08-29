@@ -193,7 +193,7 @@ void printEdge(dot, edgeData){
 get_ancestors_by_genes = { ancestor_list ->
 
   inject(ancestor_list).unfold().repeat(
-    __.inE('parent_of').where(outV().has('total_copied_to_winner', gt(0))).subgraph('sg').outV().dedup()
+    __.inE('parent_of').where(outV().out('contains').has('copied_to_winner').limit(1)).subgraph('sg').outV().dedup()
   ).cap('sg').next().traversal()
 }
 
