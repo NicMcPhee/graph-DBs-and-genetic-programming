@@ -202,6 +202,20 @@ get_ancestors_by_genes = { ancestor_list ->
   ).cap('sg').next().traversal()
 }
 
+get_ancestors_by_instructions = { ancestor_list ->
+  inject(ancestor_list).unfold().repeat(
+    __.inE('parent_of').where(outV().out('contains').has('instruction_copied_to_winner').limit(1))
+    .subgraph('sg').outV().dedup()
+  ).cap('sg').next().traversal()
+}
+
+get_ancestors_by_closes = { ancestor_list ->
+  inject(ancestor_list).unfold().repeat(
+    __.inE('parent_of').where(outV().out('contains').has('close_copied_to_winner').limit(1))
+    .subgraph('sg').outV().dedup()
+  ).cap('sg').next().traversal()
+}
+
 def get_ancestors(ancestor_list){
 
   inject(ancestor_list).unfold().repeat(
@@ -254,8 +268,11 @@ loadAncestry = { propertiesFileName, dotFileName ->
   g.V().has('total_error',0).fill(ancestor_list)
   status("ancestor_list.size() is ${ancestor_list.size()}")
 
-  anc = get_ancestors_by_genes(ancestor_list)
   // anc = get_ancestors_unfiltered(ancestor_list)
+  // anc = get_ancestors_by_genes(ancestor_list)
+  // anc = get_ancestors_by_closes(ancestor_list)
+  anc = get_ancestors_by_instructions(ancestor_list)
+
   status("$anc")
 
 	// maxError = anc.V().values('total_error').max().next()
