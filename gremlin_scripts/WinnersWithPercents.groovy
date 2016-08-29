@@ -190,6 +190,11 @@ void printEdge(dot, edgeData){
   dot.writeEdge(parent, child, attrs)
 }
 
+get_ancestors_unfiltered = { ancestor_list ->
+  inject(ancestor_list).unfold().repeat(
+    __.inE('parent_of').subgraph('sg').outV().dedup()
+  ).cap('sg').next().traversal()
+}
 get_ancestors_by_genes = { ancestor_list ->
 
   inject(ancestor_list).unfold().repeat(
@@ -250,6 +255,7 @@ loadAncestry = { propertiesFileName, dotFileName ->
   status("ancestor_list.size() is ${ancestor_list.size()}")
 
   anc = get_ancestors_by_genes(ancestor_list)
+  // anc = get_ancestors_unfiltered(ancestor_list)
   status("$anc")
 
 	// maxError = anc.V().values('total_error').max().next()
