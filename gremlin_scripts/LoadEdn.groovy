@@ -610,6 +610,14 @@ loadEdn = { propertiesFileName, ednDataFile ->
     graph.tx().commit()
     debugStatus('marked genes as copied')
 
+    markAncestryGenesInstructionCopiesOnly(ancL, 'instruction_copied_to_winner', true)
+    graph.tx().commit()
+    debugStatus('marked instructions as copied')
+
+    markAncestryGenesCloseCopiesOnly(ancL, 'close_copied_to_winner', true)
+    graph.tx().commit()
+    debugStatus('marked closes as copied')
+
     markNumberOfWinningGenes(graph, maxGen)
     graph.tx().commit()
     debugStatus('stored counts of genes')
