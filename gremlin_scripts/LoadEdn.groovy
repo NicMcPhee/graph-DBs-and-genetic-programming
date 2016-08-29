@@ -558,7 +558,7 @@ addMinimalContributionProperty = { graph, lastGenIndex ->
 			  parent_edges = child.edges(Direction.IN).sort{ it.value('dl_dist') }
 			  distances = parent_edges.collect{ it.value('dl_dist') }
 			  parent_edges = child.edges(Direction.IN).sort{ it.value('dl_dist') }
-			  if (distances[0] / 10 < 0.2*child_size || distances[1] >= 2 * distances[0]) {
+			  if (distances[0] < 0.2*child_size || distances[1] >= 2 * distances[0]) {
 			    // println "${child_size}, ${distances[0]}, and ${distances[1]}"
 			    parent_edges[1].property('minimal_contribution', true)
 			  }
