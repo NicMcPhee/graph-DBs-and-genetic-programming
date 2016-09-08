@@ -325,8 +325,9 @@ loadAncestry = { propertiesFileName, dotFileName ->
   .select('e').outV().values('uuid').as('parent')
   .select('e').inV().values('uuid').as('child')
   .select('e').inV().values('genetic_operators').as('genetic_operators')
-  .select('e').values('dl_dist').as('dl_dist')
-  .select('parent','child','genetic_operators', 'num_selections', 'num_ancestry_children', 'dl_dist')
+  // .select('e').values('dl_dist').as('dl_dist')
+  // .select('parent','child','genetic_operators', 'num_selections', 'num_ancestry_children', 'dl_dist')
+   .select('parent','child','genetic_operators', 'num_selections', 'num_ancestry_children')
   .sideEffect{ printEdge(dot, it.get())}.iterate()
 
   dot.close()
