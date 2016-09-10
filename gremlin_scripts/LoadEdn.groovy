@@ -28,8 +28,10 @@ createPropertiesAndKeys = { graph ->
 
   // Node properties
   successfulProperty = mgmt.makePropertyKey("successful").dataType(Boolean.class).make()
-
+  data_file_property = mgmt.makePropertyKey("data_file").dataType(String.class).make()
+  max_generation_property = mgmt.makePropertyKey("max_generation").dataType(Integer.class).make()
   run_uuid = mgmt.makePropertyKey("run_uuid").dataType(String.class).make()
+
   uuid = mgmt.makePropertyKey("uuid").dataType(String.class).make()
   generation = mgmt.makePropertyKey("generation").dataType(Integer.class).make()
   location = mgmt.makePropertyKey("location").dataType(Integer.class).make()
@@ -51,6 +53,7 @@ createPropertiesAndKeys = { graph ->
   // Gene Node Properties
   gene_content = mgmt.makePropertyKey("content").dataType(String.class).make() // A map of all the information except the tracking
   gene_position = mgmt.makePropertyKey("position").dataType(Integer.class).make() // zero-indexed position of the gene in its genome
+  gene_changes = mgmt.makePropertyKey("changes").dataType(String.class).make()
 
 	// Vertex Labels
   individual = mgmt.makeVertexLabel('individual').make()
@@ -60,7 +63,13 @@ createPropertiesAndKeys = { graph ->
   // Edge properties
   parent_type = mgmt.makePropertyKey("parent_type").dataType(String.class).make()
   LD_dist_prop = mgmt.makePropertyKey("LD_dist").dataType(Integer.class).make()
-  gene_transfer_method = mgmt.makePropertyKey("operations").dataType(String.class).make()
+  // gene_transfer_method = mgmt.makePropertyKey("operations").dataType(String.class).make()
+  // contains_type = mgmt.makePropertyKey("contains").dataType(String.class).make()
+
+  // Edge labels
+  contains = mgmt.makeEdgeLabel('contains').make()
+  parent_of = mgmt.makeEdgeLabel('parent_of').make()
+  creates = mgmt.makeEdgeLabel('creates').make()
 
   // Indexing
   successfulIndex = mgmt.buildIndex("successfulIndex", Vertex.class).addKey(successfulProperty).indexOnly(run).buildCompositeIndex()
