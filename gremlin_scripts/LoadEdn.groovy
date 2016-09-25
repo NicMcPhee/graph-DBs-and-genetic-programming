@@ -219,6 +219,7 @@ parseEdnFile = { graph, zippedEdnFile ->
   successfulRun = false
   largestGeneration = 0
   runUUID = null
+  //  capGenerationsAt = 10
 
   while ((current = next()) != Parser.END_OF_INPUT) {
 
@@ -249,6 +250,10 @@ parseEdnFile = { graph, zippedEdnFile ->
       // graph.tx().commit()
       // uncommittedIndividuals = 0
     }
+
+    // if ( largestGeneration >= capGenerationsAt ){
+    //   break;
+    // }
   }
   // a final commit
   graph.tx().commit()
