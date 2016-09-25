@@ -55,6 +55,10 @@ createPropertiesAndKeys = { graph ->
   gene_position = mgmt.makePropertyKey("position").dataType(Integer.class).make() // zero-indexed position of the gene in its genome
   gene_changes = mgmt.makePropertyKey("changes").dataType(String.class).make()
 
+  mgmt.makePropertyKey("copied_to_winner").dataType(Boolean.class).make()
+  mgmt.makePropertyKey("instruction_copied_to_winner").dataType(Boolean.class).make()
+  mgmt.makePropertyKey("close_copied_to_winner").dataType(Boolean.class).make()
+
 	// Vertex Labels
   individual = mgmt.makeVertexLabel('individual').make()
   run = mgmt.makeVertexLabel('run').make()
