@@ -631,9 +631,9 @@ loadEdn = { propertiesFileName, ednDataFile ->
     graph.tx().commit()
     debugStatus('marked closes as copied')
 
-    markNumberOfWinningGenes(graph, maxGen)
-    graph.tx().commit()
-    debugStatus('stored counts of genes')
+    // markNumberOfWinningGenes(graph, maxGen) // it isn't clear whether we actually want this
+    // graph.tx().commit()
+    // debugStatus('stored counts of genes')
   }
 
   debugStatus("adding num selections and num children")
