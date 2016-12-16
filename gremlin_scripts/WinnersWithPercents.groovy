@@ -114,11 +114,11 @@ printNode = { dot, nodeData ->
 
   try {
 
-    width = 2
-    height = 2
+    // width = 2
+    // height = 2
 
-    // width = nodeData['num_selections']/50
-    // height = nodeData['num_ancestry_children']/10
+    width = nodeData['num_selections']/50
+    height = nodeData['num_ancestry_children']/10
 
     // width = nodeData['total_copied_to_winner'] / 50
     // height = nodeData['num_selections'] / 50
@@ -136,9 +136,9 @@ printNode = { dot, nodeData ->
   // nodeLabel1 = nodeData['total_copied_to_winner']
 
   // fillcolor = rswnDualColor(nodeData['error_vector'])
-  // fillcolor = plainPercentErrorsZeroColor(nodeData)
+  fillcolor = plainPercentErrorsZeroColor(nodeData)
   // fillcolor = simpleAutoEncodingColor(nodeData)
-  fillcolor = "white"
+  // fillcolor = "white"
 
   attrs = [shape: "rectangle",
            width: width,
@@ -194,7 +194,7 @@ void printEdge(dot, edgeData){
   child = edgeData['child']
   attrs = [color: "\"$c\"",
            penwidth: 1,
-           label: "\"$edgeLabel\"",
+           // label: "\"$edgeLabel\"",
            style: "\"$sty\""]
 
   dot.writeEdge(parent, child, attrs)
