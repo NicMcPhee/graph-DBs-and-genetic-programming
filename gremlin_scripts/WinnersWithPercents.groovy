@@ -117,8 +117,11 @@ printNode = { dot, nodeData ->
     // width = 2
     // height = 2
 
-    width = nodeData['num_selections']/50
-    height = nodeData['num_ancestry_children']/10
+    // width = nodeData['num_selections']/50
+    // height = nodeData['num_ancestry_children']/10
+
+    width = nodeData['total_instructions_copied_to_winner']/10
+    height = Math.log(nodeData['num_selections'])/Math.log(3)
 
     // width = nodeData['total_copied_to_winner'] / 50
     // height = nodeData['num_selections'] / 50
@@ -314,7 +317,7 @@ loadAncestry = { propertiesFileName, dotFileName ->
 
   status('printing nodes')
   anc.V().hasLabel('individual')
-  .valueMap('uuid', 'num_selections', 'total_error', 'num_ancestry_children', 'percent_copied_to_winner', 'total_copied_to_winner', 'error_vector', 'generation', 'location')
+  .valueMap('uuid', 'num_selections', 'total_error', 'num_ancestry_children', 'percent_copied_to_winner', 'total_copied_to_winner', 'error_vector', 'generation', 'location', 'total_instructions_copied_to_winner')
   .sideEffect{printNode(dot, it.get().collectEntries{key, value -> [key, value[0]]})}.iterate()
 
   status('printing edges')
