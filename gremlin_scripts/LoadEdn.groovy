@@ -48,6 +48,10 @@ createPropertiesAndKeys = { graph ->
   num_selections = mgmt.makePropertyKey("num_selections").dataType(Integer.class).make()
   num_ancestry_children = mgmt.makePropertyKey("num_ancestry_children").dataType(Integer.class).make()
 
+  mgmt.makePropertyKey('total_copied_to_winner').dataType(Integer.class).make()
+  mgmt.makePropertyKey('total_instructions_copied_to_winner').dataType(Integer.class).make()
+  mgmt.makePropertyKey('total_closes_copied_to_winner').dataType(Integer.class).make()
+
   minimal_contribution_prop = mgmt.makePropertyKey('minimal_contribution').dataType(Boolean.class).make()
 
   // Gene Node Properties
@@ -338,17 +342,25 @@ markAncestryGenesCloseCopiesOnly = { ancestry_list, key, value ->
 
 
 
-getGeneCounts = { vertex ->
+getCounts = { vertex ->
   genes = vertex.vertices(Direction.OUT, 'contains')
   totGenes = 0
   winGenes = 0
+  winInstructions = 0
+  winCloses       = 0
   genes.each { v ->
     if ( v.values('copied_to_winner')){
       winGenes++;
     }
+    if (v.values('instruction_copied_to_winner')){
+      winInstructions++;
+    }
+    if (v.values('close_copied_to_winner')){
+      winCloses++;
+    }
     totGenes++;
   }
-  return [winning_genes: winGenes, total_genes: totGenes]
+  return [winning_instructions: winInstructions, winning_closes: winCloses, winning_genes: winGenes, total_genes: totGenes]
 }
 
 markNumberOfWinningGenes = { graph, lastGenIndex ->
@@ -359,11 +371,16 @@ markNumberOfWinningGenes = { graph, lastGenIndex ->
     g.V().has('generation', generation).sideEffect{ traverser ->
 
       vertex = traverser.get()
-      stats = getGeneCounts(vertex)
+      stats = getCounts(vertex)
 
       if ( stats['winning_genes'] != 0){
         vertex.property('total_copied_to_winner', stats['winning_genes'])
-        vertex.property('percent_copied_to_winner',  stats['winning_genes'] /(float) stats['total_genes'])
+      }
+      if (stats['winning_instructions'] != 0){
+        vertex.property('total_instructions_copied_to_winner', stats['winning_instructions'])
+      }
+      if (stats['winning_closes'] != 0){
+        vertex.property('total_closes_copied_to_winner', stats['winning_closes'])
       }
 
     }.iterate()
@@ -636,9 +653,9 @@ loadEdn = { propertiesFileName, ednDataFile ->
     graph.tx().commit()
     debugStatus('marked closes as copied')
 
-    // markNumberOfWinningGenes(graph, maxGen) // it isn't clear whether we actually want this
-    // graph.tx().commit()
-    // debugStatus('stored counts of genes')
+    markNumberOfWinningGenes(graph, maxGen)
+    graph.tx().commit()
+    debugStatus('stored counts of genes')
   }
 
   debugStatus("adding num selections and num children")
