@@ -24,7 +24,15 @@ plotHelper = { dotWriter, ordered_genome, name, vertex_closure, color_closure, s
 
     content_string = vertex.value('content')
     content_map = parser.nextValue(Parsers.newParseable(content_string))
-    instruction = Printers.printString(content_map[instruction_key]).replace('\\', '\\\\')
+    // instruction = Printers.printString(content_map[instruction_key]).replace('\\', '\\\\')
+    instruction = Printers.printString(content_map[instruction_key])
+    if ( content_map[instruction_key] instanceof String) {
+      if ( instruction.length() == 2) {
+        instruction = "''"
+      } else {
+        instruction = "'" + instruction[1..-2] + "'"
+      }
+    }
     close = Printers.printString(content_map[close_key])
 
     fillcolor = color_closure(ordered_genome[i])
