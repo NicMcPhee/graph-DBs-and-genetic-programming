@@ -47,19 +47,41 @@
   (do-invert-gene-edges "instruction" "GetsInstructionFrom")
   (do-invert-gene-edges "close" "GetsCloseFrom"))
 
-(defn calculate-pageranks
-  [node-label edge-labels]
-  (let [edge-types (clojure.string/join "|" edge-labels)]
-    (dorun
-     (cy/tquery
+(defn invert-parent-of-edges
+  []
+  (doseq [gen (range 0 (inc (max-generation)))]
+    (cy/tquery
       *neo4j-connection*
       (selmer/render
-       (long-query
-        "MATCH (n:{{node-label}})"
-        "WITH COLLECT(n) AS nodes"
-        "CALL apoc.algo.pageRankWithConfig(nodes,{iterations:10,types:'{{edge-types}}'}) YIELD node, score"
-        "SET node.pageRank = score")
-       {:node-label node-label, :edge-types edge-types})))))
+        (long-query
+	 "match (p:Individual {generation: {{gen}}})-[:ParentOf]->(c:Individual)"
+	 "create (c)-[:ChildOf]->(p)")
+	{:gen gen}))))
+
+(defn set-page-rank
+  [r count]
+  (let [id (long (get r "id(node)"))
+        score (get r "score")]
+    (when (zero? (rem count 1000))
+    	  (println "Processing node " + count + "\n"))
+    (nn/set-property *neo4j-connection* id "pageRank" score)))
+
+(defn calculate-pageranks
+  [node-label edge-labels]
+  (let [edge-types (clojure.string/join "|" edge-labels)
+        results (cy/tquery
+		 *neo4j-connection*
+		 (selmer/render
+		  (long-query
+		   "MATCH (n:{{node-label}})"
+		   "WITH COLLECT(n) AS nodes"
+		   ; "CALL apoc.algo.pageRankWithConfig(nodes,{iterations:10,types:'{{edge-types}}'}) YIELD node, score"
+		   "CALL apoc.algo.pageRankWithConfig(nodes,{types:'{{edge-types}}'}) YIELD node, score"
+		   "RETURN id(node), score")
+		  {:node-label node-label, :edge-types edge-types}))]
+     (println "Computed page ranks.\n")
+     (dorun
+      (pmap set-page-rank results (range)))))
 
 (defn calculate-individual-pageranks
   []
